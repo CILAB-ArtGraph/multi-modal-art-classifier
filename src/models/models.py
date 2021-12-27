@@ -32,7 +32,7 @@ class ResnetMultiTask(nn.Module):
     (image) -> (resnet50) -> (linear-artist), (linear-style), (linear-genre)
     """
 
-    def __init__(self, num_classes: Dict[str, int], freeze = False):
+    def __init__(self, num_classes: Dict[str, int]):
         super(ResnetMultiTask, self).__init__()
 
         resnet = models.resnet50(pretrained=True)
@@ -57,7 +57,7 @@ class ResnetSingleTask(nn.Module):
     (image) -> (resnet50) -> (linear)
     """
 
-    def __init__(self, num_class:int, freeze = False):
+    def __init__(self, num_class:int):
         super(ResnetSingleTask, self).__init__()
 
         resnet = models.resnet50(pretrained=True)
