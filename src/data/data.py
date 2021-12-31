@@ -17,10 +17,20 @@ def transform(image: Tensor):
 
     return preprocess(image)
 
+def vit_transform(image: Tensor):
+    preprocess = Compose([
+        Resize((224, 224)),
+        ToTensor(),
+        Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    ])
+
+    return preprocess(image)
+
 class Artgraph(data.Dataset):
-    def __init__(self, image_dir:str, df_image_label: DataFrame):
+    def __init__(self, image_dir:str, df_image_label: DataFrame, transform_type = 'resnet'):
         self.image_dir = image_dir
         self.dataset = df_image_label
+        self.transform_type = transform_type
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -30,7 +40,11 @@ class Artgraph(data.Dataset):
         image = Image.open(image_path)
         if(image.mode != 'RGB'):
             image = image.convert('RGB')
-        image_tensor = transform(image)
+        if self.transform_type == 'resnet':
+            image_tensor = transform(image)
+        else:
+            image_tensor = vit_transform(image)
+            image_tensor = image_tensor.unsqueeze(0)
 
         return image_tensor
 
@@ -45,11 +59,11 @@ class ArtGraphMultiTask(Artgraph):
         df_image_label: a pandas' dataframe which contains the following column: 'image', 'style', 'genre'. The order is important.
     """
 
-    def __init__(self, image_dir:str, df_image_label: DataFrame):
+    def __init__(self, image_dir:str, df_image_label: DataFrame, transform_type: str = 'resnet'):
         columns = df_image_label.columns
         assert 'image' in columns and 'style' in columns and 'genre' in columns
 
-        super().__init__(image_dir, df_image_label)
+        super().__init__(image_dir, df_image_label, transform_type)
 
     def __getitem__(self, idx: Tensor):
         if torch.is_tensor(idx):
@@ -73,9 +87,9 @@ class ArtGraphSingleTask(Artgraph):
         df_image_label: a pandas' dataframe which contains the following column: 'image', <label_name>. The order is important.
     """
 
-    def __init__(self, image_dir:str, df_image_label: DataFrame):
+    def __init__(self, image_dir:str, df_image_label: DataFrame, transform_type: str ='resnet'):
         assert 'image' in df_image_label.columns
-        super().__init__(image_dir, df_image_label)
+        super().__init__(image_dir, df_image_label, transform_type)
 
     def __getitem__(self, idx: Tensor):
         if torch.is_tensor(idx):

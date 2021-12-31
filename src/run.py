@@ -3,38 +3,24 @@ from tqdm import tqdm
 import torch
 import mlflow
 
-from data.data import ArtGraphSingleTask
 from models.models import ResnetSingleTask, EarlyStopping
-from utils import prepare_raw_dataset, prepare_dataloader
+from utils import load_dataset, prepare_dataloader
 
 torch.manual_seed(1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--image_path', type=str, default='../../images/imagesf2', help='Experiment name.')
 parser.add_argument('--dataset_path', type=str, default='../dataset', help='Experiment name.')
-parser.add_argument('--exp', type=str, default='resnet-baseline', help='Experiment name.')
+parser.add_argument('--exp', type=str, default='test', help='Experiment name.')
 parser.add_argument('--type', type=str, default='no-kg', help='(no-kg|with-kg)')
-parser.add_argument('--mode', type=str, default='single_task', help='Training mode (multi_task|single_task).')
-parser.add_argument('--label', type=str, default='genre', help='Label to predict (all|style|genre).')
+parser.add_argument('--label', type=str, default='genre', help='Label to predict (style|genre).')
 parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train.')
 parser.add_argument('--batch', type=int, default=32, help='Number of epochs to train.')
-parser.add_argument('--lr', type=float, default=10**(-3), help='Initial learning rate.')
-parser.add_argument('--freeze', action='store_true', default='False', help='Freeze the first layers.')
+parser.add_argument('--lr', type=float, default=0.0001, help='Initial learning rate.')
 args = parser.parse_args()
 
-raw_train = prepare_raw_dataset(args.dataset_path, type = 'train')
-raw_valid = prepare_raw_dataset(args.dataset_path, type = 'validation')
-raw_test = prepare_raw_dataset(args.dataset_path, type = 'test')
-
-if args.mode == 'single_task':
-    dataset_train = ArtGraphSingleTask(args.image_path, raw_train[['image', args.label]])
-    dataset_valid = ArtGraphSingleTask(args.image_path, raw_valid[['image', args.label]])
-    dataset_test = ArtGraphSingleTask(args.image_path, raw_test[['image', args.label]])
-else:
-    dataset_train = ArtGraphSingleTask(args.image_path, raw_train[['image', 'style', 'genre']])
-    dataset_valid = ArtGraphSingleTask(args.image_path, raw_valid[['image', 'style', 'genre']])
-    dataset_test = ArtGraphSingleTask(args.image_path, raw_test[['image', 'style', 'genre']])
-
+dataset_train, dataset_valid, dataset_test = load_dataset(
+    base_dir = args.dataset_path, image_dir = args.image_path, mode = 'single_task', label = args.label, transform_type = 'resnet')
 
 data_loaders = prepare_dataloader({'train': dataset_train, 'valid': dataset_valid, 'test': dataset_test},
                                                   batch_size = args.batch, num_workers = 6, shuffle = True,
@@ -45,13 +31,13 @@ num_classes = {
     'style': 32
 }
 
-model = ResnetSingleTask(num_classes[args.label], freeze=True)
+model = ResnetSingleTask(num_classes[args.label])
 model = model.to('cuda', non_blocking=True)
 
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
 
-early_stop = EarlyStopping(patience = 3, min_delta = 0.001)
+early_stop = EarlyStopping(patience = 3, min_delta = 0.001, checkpoint_path = f'{args.label}_{args.type}_single-task_model_checkpoint.pt')
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
 
 def train():
@@ -102,7 +88,7 @@ def test(type: str):
     epoch_acc = total_correct/total_examples
 
     if type == 'valid':
-        early_stop(epoch_loss)
+        early_stop(epoch_loss, model)
         scheduler.step(epoch_loss)
 
 
@@ -113,12 +99,10 @@ mlflow.set_tracking_uri(mlruns_path)
 mlflow.set_experiment(args.exp)
 with mlflow.start_run() as run:
     mlflow.log_param('type', args.type)
-    mlflow.log_param('mode', args.mode)
     mlflow.log_param('label', args.label)
     mlflow.log_param('epochs', args.epochs)
     mlflow.log_param('batch size', args.batch)
     mlflow.log_param('learning rate', args.lr)
-    mlflow.log_param('freeze', args.freeze)
     mlflow.log_param('dropout', True)
 
     for epoch in range(args.epochs):
