@@ -62,9 +62,10 @@ class MultiModalArtgraphMultiTask(MultiModalArtgraph):
 
 class MultiModalArtgraphSingleTask(MultiModalArtgraph):
 
-    def __init__(self, image_dir:str, df_image_label: DataFrame, embeddings: Tensor):
+    def __init__(self, image_dir:str, df_image_label: DataFrame, embeddings: Tensor, type = 'train'):
         assert 'image' in df_image_label.columns
-        assert len(df_image_label) == embeddings.shape[0]
+        #assert len(df_image_label) == embeddings.shape[0]
+        self.type = type
         super().__init__(image_dir, df_image_label, embeddings)
 
     def __getitem__(self, idx: Tensor):
@@ -75,7 +76,27 @@ class MultiModalArtgraphSingleTask(MultiModalArtgraph):
         image_tensor = self.prepare_image(image_path)
 
         label_id = self.dataset.iloc[idx, 1]
-        embedding = self.embeddings[idx]
+        if self.type == 'train':
+            embedding = self.embeddings[label_id]
+        else:
+            embedding = self.embeddings[idx]
 
         return image_tensor, embedding, label_id
+
+class LabelProjectionDataset(MultiModalArtgraph):
+
+    def __init__(self, image_dir:str, df_image_label: DataFrame, embeddings: Tensor):
+        super().__init__(image_dir, df_image_label, embeddings)
+
+    def __getitem__(self, idx: Tensor):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        image_path = os.path.join(self.image_dir, self.dataset.iloc[idx, 0])
+        image_tensor = self.prepare_image(image_path)
+
+        label_id = self.dataset.iloc[idx, 1]
+        label_embedding = self.embeddings[label_id]
+
+        return image_tensor, label_embedding
 

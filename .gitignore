@@ -147,3 +147,7 @@ notebooks/
 
 #trackings
 tracking/
+
+#other stuff
+src/checkouts/
+*.pt

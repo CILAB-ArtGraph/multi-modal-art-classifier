@@ -66,18 +66,16 @@ class ArtGraph(InMemoryDataset):
         
         path = os.path.join(self.raw_dir, 'num-node-dict.csv')
         num_nodes_df = pd.read_csv(path)
-        num_nodes_df.rename(columns={"training": "training_node"}, inplace=True)
         nodes_type = ['artist', 'style', 'genre', 'tag', 'media']
         if self.preprocess is None:
             for node_type in nodes_type:
                 data[node_type].num_nodes = num_nodes_df[node_type].tolist()[0]
         elif self.preprocess == 'constant':
             for node_type in nodes_type:
-                ones = [1] * num_nodes_df[node_type].tolist()[0]
-                data_tensor = torch.Tensor(ones)
-                data_tensor = torch.reshape(data_tensor, (num_nodes_df[node_type].tolist()[0], 1))
-                data[node_type].x = data_tensor
-
+                #ones = [1] * num_nodes_df[node_type].tolist()[0]
+                #data_tensor = torch.Tensor(ones)
+                #data_tensor = torch.reshape(data_tensor, (num_nodes_df[node_type].tolist()[0], 1))
+                data[node_type].x = torch.arange(num_nodes_df[node_type].tolist()[0], dtype = torch.float32).unsqueeze(1)
         elif self.preprocess == 'one-hot':
             for node_type in nodes_type:
                 data[node_type].x = torch.eye(num_nodes_df[node_type].tolist()[0])
