@@ -149,5 +149,6 @@ notebooks/
 tracking/
 
 #other stuff
-src/checkouts/
+src/checkpoints/
+src/*.pt
 *.pt
