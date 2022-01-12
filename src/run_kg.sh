@@ -1,17 +1,33 @@
 echo 'START EXPERIMENTS'  
 n=1
 
-for label in "genre" "style"
+for lr in 3e-4 3e-5
 do
-    for lr in 0.0001 0.001
-    do
-        for lambda in 0.9 0.8 0.7
-        do
-            echo Experiment number $n with $label and learning rate $lr and lambda $lambda
-            python3 run_kg.py --exp multi-modal-single-task --label $label --epochs 100 --lr $lr --lamb $lambda
-            ((n=n+1))
-        done
-    done
+    echo Experiment number $n with style and learning rate $lr and embedding artwork
+    python3 run_baseline_context.py --exp baseline-context-net --label style --epochs 100 --lr $lr --embedding artwork --net context-net
+    ((n=n+1))
+done
+
+for lr in 3e-4 3e-5
+do
+    echo Experiment number $n with genre and learning rate $lr and embedding artwork
+    python3 run_baseline_context.py --exp baseline-context-net --label genre --epochs 100 --lr $lr --embedding artwork --net context-net
+    ((n=n+1))
+done
+
+
+for lr in 3e-4 3e-5
+do
+    echo Experiment number $n with style and learning rate $lr and embedding artwork
+    python3 run_baseline_context.py --exp baseline-sansaro --label style --epochs 100 --lr $lr --embedding artwork --net multi-modal
+    ((n=n+1))
+done
+
+for lr in 3e-4 3e-5
+do
+    echo Experiment number $n with genre and learning rate $lr and embedding artwork
+    python3 run_baseline_context.py --exp baseline-sansaro --label genre --epochs 100 --lr $lr --embedding artwork --net multi-modal
+    ((n=n+1))
 done
 
 echo 'END EXPERIMENTS'  

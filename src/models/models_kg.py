@@ -86,6 +86,44 @@ class MultiModalSingleTask(nn.Module):
 
         return out, graph_proj
 
+class MultiModalMultiTask(nn.Module):
+
+    def __init__(self, emb_size: int, num_classes: Dict[str, int]):
+        super().__init__()
+
+        self.resnet = models.resnet50(pretrained=True)
+        len_last = self.resnet.fc.in_features
+        self.resnet.fc = nn.Identity()
+
+        self.class_style = nn.Sequential(
+            nn.Dropout(0.2),
+            nn.Linear(len_last + emb_size, num_classes['style'])
+        )
+
+        self.class_genre = nn.Sequential(
+            nn.Dropout(0.2),
+            nn.Linear(len_last + emb_size, num_classes['genre'])
+        )
+
+        self.encoder = nn.Sequential(
+            nn.Linear(len_last, emb_size),
+            nn.Tanh(),
+            nn.Linear(emb_size, emb_size),
+            nn.Tanh()
+        )
+
+    def forward(self, img: Tensor) -> List[Tensor]:
+
+        visual_features = self.resnet(img)
+        graph_proj = self.encoder(visual_features)
+
+        concat = cat((visual_features, graph_proj), 1)
+
+        out_style = self.class_style(concat)
+        out_genre = self.class_genre(concat)
+
+        return [out_style, out_genre], graph_proj
+
 class NewMultiModalSingleTask(nn.Module):
 
     def __init__(self, emb_size: int, num_class:int, dropout: float):
@@ -95,7 +133,6 @@ class NewMultiModalSingleTask(nn.Module):
         len_last = self.resnet.fc.in_features
         self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])
 
-        
         self.classifier = nn.Sequential(
             nn.Dropout(dropout),
             nn.Linear(len_last + emb_size, num_class))
@@ -111,6 +148,37 @@ class NewMultiModalSingleTask(nn.Module):
         out = self.classifier(comb)
 
         return out
+
+class NewMultiModalMultiTask(nn.Module):
+
+    def __init__(self, emb_size: int, num_classes: Dict[str, int], dropout: float):
+        super().__init__()
+
+        self.resnet = models.resnet50(pretrained=True)
+        len_last = self.resnet.fc.in_features
+        self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])
+
+        
+        self.class_style = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(len_last + emb_size, num_classes['style']))
+
+        self.class_genre = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(len_last + emb_size, num_classes['genre']))
+
+    def forward(self, img: Tensor, embedding_style: Tensor, embedding_genre: Tensor) -> List[Tensor]:
+
+        visual_features = self.resnet(img)
+        visual_features = visual_features.view(visual_features.size(0), -1)
+
+        comb_style = cat((visual_features, embedding_style), dim = 1)
+        comb_genre = cat((visual_features, embedding_genre), dim = 1)
+
+        out_style = self.class_style(comb_style)
+        out_genre = self.class_genre(comb_genre)
+
+        return [out_style, out_genre]
 
 class LabelProjector(nn.Module):
 

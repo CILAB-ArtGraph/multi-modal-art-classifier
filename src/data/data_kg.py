@@ -35,8 +35,6 @@ class MultiModalArtgraph(data.Dataset):
 
         return image_tensor
 
-
-
 class MultiModalArtgraphMultiTask(MultiModalArtgraph):
 
     def __init__(self, image_dir:str, df_image_label: DataFrame, embeddings: Tensor):
@@ -99,4 +97,46 @@ class LabelProjectionDataset(MultiModalArtgraph):
         label_embedding = self.embeddings[label_id]
 
         return image_tensor, label_embedding
+
+class NewMultiModalArtgraphMultiTask:
+
+    def __init__(self, image_dir:str, df_image_label: DataFrame, embedding_style: Tensor, embedding_genre: Tensor, type: str = 'train'):
+        columns = df_image_label.columns
+        assert 'image' in columns and 'style' in columns and 'genre' in columns
+
+        self.image_dir = image_dir
+        self.dataset = df_image_label
+        self.embedding_style = embedding_style
+        self.embedding_genre = embedding_genre
+        self.type = type
+
+    def __len__(self) -> int:
+        return len(self.dataset)
+
+    def prepare_image(self, image_path:str) -> Tensor:
+
+        image = Image.open(image_path)
+        if(image.mode != 'RGB'):
+            image = image.convert('RGB')
+        image_tensor = transform(image)
+
+        return image_tensor
+
+    def __getitem__(self, idx: Tensor):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        image_path = os.path.join(self.image_dir, self.dataset.iloc[idx, 0])
+        image_tensor = self.prepare_image(image_path)
+
+        style_id = self.dataset.iloc[idx, 1]
+        genre_id = self.dataset.iloc[idx, 2]
+        if self.type == 'train':
+            embedding_style = self.embedding_style[style_id]
+            embedding_genre = self.embedding_genre[genre_id]
+        else:
+            embedding_style = self.embedding_style[idx]
+            embedding_genre = self.embedding_genre[idx]
+
+        return image_tensor, embedding_style, embedding_genre, [style_id, genre_id]
 
