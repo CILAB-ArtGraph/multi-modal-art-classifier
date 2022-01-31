@@ -10,7 +10,7 @@ torch.manual_seed(1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--image_path', type=str, default='../../images/imagesf2', help='Experiment name.')
-parser.add_argument('--dataset_path', type=str, default='../dataset', help='Experiment name.')
+parser.add_argument('--dataset_path', type=str, default='../dataset/final_full', help='Experiment name.')
 parser.add_argument('--exp', type=str, default='baseline', help='Experiment name.')
 parser.add_argument('--label', type=str, default='genre', help='Label to predict (style|genre).')
 parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train.')
@@ -25,10 +25,18 @@ data_loaders = prepare_dataloader({'train': dataset_train, 'valid': dataset_vali
                                                   batch_size = args.batch, num_workers = 6, shuffle = True,
                                                   drop_last = False, pin_memory = True)
 
+dataset = dataset_train.dataset
+total_class = dataset.groupby(args.label).count().image.sum()
+print(total_class)  
+class_distribution = dataset.groupby(args.label).count()    
+print(class_distribution)                         
+
 num_classes = {
     'genre': 18,
     'style': 32
 }
+
+"""
 
 model = ResnetSingleTask(num_classes[args.label])
 model = model.to('cuda', non_blocking=True)
@@ -140,3 +148,4 @@ with mlflow.start_run() as run:
     acc = test()
     print(f'Test accuracy: {acc.item()}')
     mlflow.log_metric(f'test acc', acc.item(), step=epoch)
+"""

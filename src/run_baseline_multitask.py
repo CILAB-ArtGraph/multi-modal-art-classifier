@@ -11,7 +11,7 @@ torch.manual_seed(1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--image_path', type=str, default='../../images/imagesf2', help='Experiment name.')
-parser.add_argument('--dataset_path', type=str, default='../dataset', help='Dataset path.')
+parser.add_argument('--dataset_path', type=str, default='../dataset/final_full', help='Dataset path.')
 parser.add_argument('--exp', type=str, default='baseline-multitask', help='Experiment name.')
 parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train.')
 parser.add_argument('--batch', type=int, default=32, help='Number of epochs to train.')
@@ -30,6 +30,18 @@ num_classes = {
     'genre': 18,
     'style': 32
 }
+
+def get_class_weights(label):
+    dataset = dataset_train.dataset
+    total_class= dataset.groupby(label).count().image.sum()
+    class_distribution = dataset.groupby(label).count()  
+    class_distribution['image'] = class_distribution['image'].map(lambda x: total_class/(x*num_classes[label]))
+    class_weights = torch.Tensor(class_distribution['image']).tolist()
+
+    return class_weights
+
+class_weights_genre = get_class_weights('genre')
+class_weights_style = get_class_weights('style')
 
 model = ResnetMultiTask(num_classes)
 model = model.to('cuda', non_blocking=True)

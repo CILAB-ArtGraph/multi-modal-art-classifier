@@ -4,6 +4,7 @@ from torch import Tensor
 import torch.nn as nn
 from torchvision import models
 import torch.nn.functional as F
+from timm import create_model
 
 class EarlyStopping():
 
@@ -88,7 +89,6 @@ class ResnetSingleTask(nn.Module):
 
         return out
 
-"""
 class ViTSingleTask(nn.Module):
 
     def __init__(self, num_class: int):
@@ -109,4 +109,3 @@ class ViTSingleTask(nn.Module):
         out = self.classifier(visual_features)
 
         return out
-"""
