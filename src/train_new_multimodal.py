@@ -5,25 +5,18 @@ import mlflow
 
 from models.models_kg import NewMultiModalSingleTask
 from models.models import EarlyStopping
-from utils import load_dataset_new_multimodal, prepare_dataloader, tracker, track_params
+from utils import load_dataset_new_multimodal, prepare_dataloader, tracker, track_params, get_class_weights, get_base_arguments
 
 torch.manual_seed(1)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--image_path', type=str, default='../../images/imagesf2', help='Image folder path.')
-parser.add_argument('--dataset_path', type=str, default='../dataset', help='Dataset path.')
-parser.add_argument('--exp', type=str, default='new-multi-modal', help='Experiment name.')
+parser = get_base_arguments()
 parser.add_argument('--label', type=str, default='genre', help='Label to predict. Options: (style|genre).')
 parser.add_argument('--emb_desc', type=str, default='genre', help='(gnn|metapath2vec).')
 parser.add_argument('--emb_type', type=str, default='genre', help='Embedding type (artwork|genre|style).')
 parser.add_argument('--emb_train', type=str, default='gnn_genre_embs_graph.pt', help='Embedding train file name.')
 parser.add_argument('--emb_valid', type=str, default='gnn_genre_valid_embs_graph.pt', help='Embedding train file name.')
 parser.add_argument('--emb_test', type=str, default='gnn_genre_test_embs_graph.pt', help='Embedding train file name.')
-parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train.')
-parser.add_argument('--batch', type=int, default=32, help='The batch size.')
-parser.add_argument('--lr', type=float, default=3e-5, help='Initial learning rate.')
 parser.add_argument('--dropout', type=float, default=0.4, help='Dropout')
-parser.add_argument('-t', '--tracking', action='store_false', help='If tracking or not with MLFlow')
 args = parser.parse_args()
 
 dataset_train, dataset_valid, dataset_test = load_dataset_new_multimodal(
@@ -42,7 +35,11 @@ num_classes = {
 model = NewMultiModalSingleTask(emb_size = 128, num_class = num_classes[args.label], dropout=args.dropout)
 model = model.to('cuda', non_blocking=True)
 
-class_criterion = torch.nn.CrossEntropyLoss()
+if args.with_weights:
+    class_weights = get_class_weights(dataset_train, num_classes[args.label],  args.label)
+    class_criterion = torch.nn.CrossEntropyLoss(class_weights.to('cuda'))
+else:
+    class_criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
 
 checkpoint_name = f'{args.label}_new_multi_modal_checkpoint.pt'

@@ -3,24 +3,17 @@ from tqdm import tqdm
 import torch
 import mlflow
 
-from models.models_kg import MultiModalSingleTask, ContextNetSingleTask, NewMultiModalSingleTask
+from models.models_kg import MultiModalSingleTask, ContextNetSingleTask
 from models.models import EarlyStopping
-from utils import load_dataset_multimodal, prepare_dataloader, tracker, track_params
+from utils import load_dataset_multimodal, prepare_dataloader, tracker, track_params, get_class_weights, get_base_arguments
 
 torch.manual_seed(1)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--image_path', type=str, default='../../images/imagesf2', help='Image folder path.')
-parser.add_argument('--dataset_path', type=str, default='../dataset', help='Dataset path.')
-parser.add_argument('--exp', type=str, default='baseline-with-context', help='Experiment name.')
+parser = get_base_arguments()
 parser.add_argument('--net', type=str, default='multi-modal', help='The architecture. Options: (context-net|multi-modal)')
 parser.add_argument('--label', type=str, default='genre', help='Label to predict. Options: (style|genre).')
 parser.add_argument('--emb_type', type=str, default='artwork', help='Embedding type. Options: (artwork|style|genre).')
 parser.add_argument('--emb_train', type=str, default='gnn_artwork_genre_embs_graph.pt', help='Embedding train file.')
-parser.add_argument('--epochs', type=int, default=1, help='Number of epochs to train.')
-parser.add_argument('--batch', type=int, default=32, help='The batch size.')
-parser.add_argument('--lr', type=float, default=3e-5, help='Initial learning rate.')
-parser.add_argument('-t', '--tracking', action='store_false', help='If tracking or not with MLFlow')
 args = parser.parse_args()
 
 dataset_train, dataset_valid, dataset_test = load_dataset_multimodal(
@@ -44,7 +37,11 @@ assert args.net in nets.keys()
 model = nets[args.net](emb_size = 128, num_class = num_classes[args.label])
 model = model.to('cuda', non_blocking=True)
 
-class_criterion = torch.nn.CrossEntropyLoss()
+if args.with_weights:
+    class_weights = get_class_weights(dataset_train, num_classes[args.label],  args.label)
+    criterion = torch.nn.CrossEntropyLoss(class_weights.to('cuda'))
+else:
+    criterion = torch.nn.CrossEntropyLoss()
 
 if args.net == 'context-net':
     encoder_criterion = torch.nn.SmoothL1Loss()

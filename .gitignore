@@ -152,3 +152,4 @@ tracking/
 src/checkpoints/
 src/*.pt
 *.pt
+.envs

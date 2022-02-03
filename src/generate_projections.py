@@ -3,34 +3,35 @@ import torch
 import pandas as pd
 from models.models_kg import LabelProjector
 from data.data import ArtGraphSingleTask
-import argparse
 
 from os import listdir
 from os.path import isfile, join
-proj_names = [f for f in listdir('../projections') if isfile(join('../projections', f))]
+
+def prepare_raw_dataset(base_dir: str, type : str):
+    artwork = pd.read_csv(os.path.join(base_dir, type, 'mapping/artwork_entidx2name.csv'), names=['idx', 'image'])
+    style = pd.read_csv(os.path.join(base_dir, type, 'raw/node-label/artwork/node-label-style.csv'), names=['style'])
+    genre = pd.read_csv(os.path.join(base_dir, type, 'raw/node-label/artwork/node-label-genre.csv'), names=['genre'])
+
+    dataset = pd.concat([artwork, style, genre], axis=1)
+    return dataset
+
+def load_dataset(base_dir: str, image_dir: str, label: str = None):
+    raw_valid = prepare_raw_dataset(base_dir, type = 'validation')
+    raw_test = prepare_raw_dataset(base_dir, type = 'test')
+    dataset_valid = ArtGraphSingleTask(image_dir, raw_valid[['image', label]])
+    dataset_test = ArtGraphSingleTask(image_dir, raw_test[['image', label]])
+    
+    return dataset_valid, dataset_test
+
+proj_folder = '../projections'
+proj_names = [f for f in listdir(proj_folder) if isfile(join(proj_folder, f))]
 
 for proj_name in proj_names:
     model = LabelProjector(128)
-    model.load_state_dict(torch.load(f'../projections/{proj_name}'))
+    model.load_state_dict(torch.load(os.path.join(proj_folder, proj_name)))
     model = model.to('cuda', non_blocking=True)
 
     model.eval()
-
-    def prepare_raw_dataset(base_dir: str, type : str):
-        artwork = pd.read_csv(os.path.join(base_dir, type, 'mapping/artwork_entidx2name.csv'), names=['idx', 'image'])
-        style = pd.read_csv(os.path.join(base_dir, type, 'raw/node-label/artwork/node-label-style.csv'), names=['style'])
-        genre = pd.read_csv(os.path.join(base_dir, type, 'raw/node-label/artwork/node-label-genre.csv'), names=['genre'])
-
-        dataset = pd.concat([artwork, style, genre], axis=1)
-        return dataset
-
-    def load_dataset(base_dir: str, image_dir: str, label: str = None):
-        raw_valid = prepare_raw_dataset(base_dir, type = 'validation')
-        raw_test = prepare_raw_dataset(base_dir, type = 'test')
-        dataset_valid = ArtGraphSingleTask(image_dir, raw_valid[['image', label]])
-        dataset_test = ArtGraphSingleTask(image_dir, raw_test[['image', label]])
-        
-        return dataset_valid, dataset_test
 
     label = 'genre'
     dataset_valid, dataset_test = load_dataset(

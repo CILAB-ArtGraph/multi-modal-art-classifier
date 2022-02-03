@@ -5,18 +5,11 @@ import mlflow
 import numpy as np
 
 from models.models import ResnetMultiTask, EarlyStopping
-from utils import load_dataset, prepare_dataloader, tracker_multitask, track_params, get_class_weights
+from utils import load_dataset, prepare_dataloader, tracker_multitask, track_params, get_class_weights, get_base_arguments
 
 torch.manual_seed(1)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--image_path', type=str, default='../../images/imagesf2', help='Experiment name.')
-parser.add_argument('--dataset_path', type=str, default='../dataset', help='Dataset path.')
-parser.add_argument('--exp', type=str, default='baseline-multitask', help='Experiment name.')
-parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train.')
-parser.add_argument('--batch', type=int, default=32, help='Number of epochs to train.')
-parser.add_argument('--lr', type=float, default=3e-5, help='Initial learning rate.')
-parser.add_argument('-t', '--tracking', action='store_false', help='If tracking or not with MLFlow')
+parser = get_base_arguments()
 args = parser.parse_args()
 
 dataset_train, dataset_valid, dataset_test = load_dataset(
@@ -32,15 +25,19 @@ num_classes = {
     'style': 32
 }
 
-class_weights_genre = get_class_weights(dataset_train, num_classes['genre'], 'genre').to('cuda')
-class_weights_style = get_class_weights(dataset_train, num_classes['style'], 'style').to('cuda')
 
 model = ResnetMultiTask(num_classes)
 model = model.to('cuda', non_blocking=True)
 
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
-criterion_style = torch.nn.CrossEntropyLoss(class_weights_style)
-criterion_genre = torch.nn.CrossEntropyLoss(class_weights_genre)
+if args.with_weights:
+    class_weights_genre = get_class_weights(dataset_train, num_classes['genre'], 'genre').to('cuda')
+    class_weights_style = get_class_weights(dataset_train, num_classes['style'], 'style').to('cuda')
+    criterion_style = torch.nn.CrossEntropyLoss(class_weights_style)
+    criterion_genre = torch.nn.CrossEntropyLoss(class_weights_genre)
+else:
+    criterion_style = torch.nn.CrossEntropyLoss()
+    criterion_genre = torch.nn.CrossEntropyLoss()
 
 checkpoint_name = f'baseline_multi-task_model_checkpoint.pt'
 early_stop = EarlyStopping(patience = 3, min_delta = 0.001, checkpoint_path = checkpoint_name)

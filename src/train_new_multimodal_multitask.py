@@ -6,14 +6,11 @@ import mlflow
 
 from models.models_kg import NewMultiModalMultiTask
 from models.models import EarlyStopping
-from utils import load_dataset_multitask_new_multimodal, prepare_dataloader, tracker_multitask, track_params
+from utils import load_dataset_multitask_new_multimodal, prepare_dataloader, tracker_multitask, track_params, get_class_weights, get_base_arguments
 
 torch.manual_seed(1)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--image_path', type=str, default='../../images/imagesf2', help='Image folder path.')
-parser.add_argument('--dataset_path', type=str, default='../dataset', help='Dataset path.')
-parser.add_argument('--exp', type=str, default='new-multi-modal-multitask', help='Experiment name.')
+parser = get_base_arguments()
 parser.add_argument('--emb_desc', type=str, default='new multimodal multitask', help='Experiment description.')
 parser.add_argument('--emb_type', type=str, default='genre', help='Embedding type (artwork|genre|style).')
 parser.add_argument('--emb_train_genre', type=str, default='gnn_genre_embs_graph.pt', help='Embedding genre train file name.')
@@ -22,11 +19,7 @@ parser.add_argument('--emb_test_genre', type=str, default='gnn_genre_test_embs_g
 parser.add_argument('--emb_train_style', type=str, default='gnn_style_embs_graph.pt', help='Embedding style train file name.')
 parser.add_argument('--emb_valid_style', type=str, default='gnn_style_valid_embs_graph.pt', help='Embedding style valid file name.')
 parser.add_argument('--emb_test_style', type=str, default='gnn_style_test_embs_graph.pt', help='Embedding style test file name.')
-parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train.')
-parser.add_argument('--batch', type=int, default=32, help='The batch size.')
-parser.add_argument('--lr', type=float, default=3e-5, help='Initial learning rate.')
 parser.add_argument('--dropout', type=float, default=0.4, help='Dropout.')
-parser.add_argument('-t', '--tracking', action='store_false', help='If tracking or not with MLFlow')
 args = parser.parse_args()
 
 dataset_train, dataset_valid, dataset_test = load_dataset_multitask_new_multimodal(
@@ -48,7 +41,14 @@ num_classes = {
 model = NewMultiModalMultiTask(emb_size = 128, num_classes = num_classes, dropout=0)
 model = model.to('cuda', non_blocking=True)
 
-criterion = torch.nn.CrossEntropyLoss()
+if args.with_weights:
+    class_weights_genre = get_class_weights(dataset_train, num_classes['genre'], 'genre').to('cuda')
+    class_weights_style = get_class_weights(dataset_train, num_classes['style'], 'style').to('cuda')
+    criterion_style = torch.nn.CrossEntropyLoss(class_weights_style)
+    criterion_genre = torch.nn.CrossEntropyLoss(class_weights_genre)
+else:
+    criterion_style = torch.nn.CrossEntropyLoss()
+    criterion_genre = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
 
 checkpoint_name = f'{args.emb_type}_new_multi_modal_multitaskcheckpoint.pt'
@@ -72,8 +72,8 @@ def train(epoch):
         with torch.cuda.amp.autocast():
             out = model(images, style_embeddings, genre_embeddings)
 
-            style_loss = 0.5 * criterion(out[0], style_labels)
-            genre_loss = 0.5 * criterion(out[1], genre_labels)
+            style_loss = 0.5 * criterion_style(out[0], style_labels)
+            genre_loss = 0.5 * criterion_genre(out[1], genre_labels)
             loss = style_loss + genre_loss
         loss.backward()
         optimizer.step()

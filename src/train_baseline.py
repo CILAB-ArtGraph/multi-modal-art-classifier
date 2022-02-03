@@ -4,20 +4,15 @@ import torch
 import mlflow
 
 from models.models import ResnetSingleTask, EarlyStopping
-from utils import load_dataset, prepare_dataloader, tracker, track_params, get_class_weights
+from utils import load_dataset, prepare_dataloader, tracker, track_params, get_class_weights, get_base_arguments
 
 torch.manual_seed(1)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--image_path', type=str, default='../../images/imagesf2', help='Experiment name.')
-parser.add_argument('--dataset_path', type=str, default='../dataset', help='Experiment name.')
-parser.add_argument('--exp', type=str, default='test', help='Experiment name.')
+parser = get_base_arguments()
 parser.add_argument('--label', type=str, default='genre', help='Label to predict (style|genre).')
-parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train.')
-parser.add_argument('--batch', type=int, default=32, help='Number of epochs to train.')
-parser.add_argument('--lr', type=float, default=3e-4, help='Initial learning rate.')
-parser.add_argument('-t', '--tracking', action='store_false', help='If tracking or not with MLFlow')
 args = parser.parse_args()
+
+print(args)
 
 dataset_train, dataset_valid, dataset_test = load_dataset(
     base_dir = args.dataset_path, image_dir = args.image_path, mode = 'single_task', label = args.label, transform_type = 'resnet')
@@ -31,12 +26,15 @@ num_classes = {
     'style': 32
 }
 
-class_weights = get_class_weights(dataset_train, num_classes[args.label],  args.label)
-
 model = ResnetSingleTask(num_classes[args.label])
 model = model.to('cuda', non_blocking=True)
 
-criterion = torch.nn.CrossEntropyLoss(class_weights.to('cuda'))
+if args.with_weights:
+    class_weights = get_class_weights(dataset_train, num_classes[args.label],  args.label)
+    criterion = torch.nn.CrossEntropyLoss(class_weights.to('cuda'))
+else:
+    criterion = torch.nn.CrossEntropyLoss()
+
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
 
 checkpoint_name = f'{args.label}_baseline_single-task_model_checkpoint.pt'

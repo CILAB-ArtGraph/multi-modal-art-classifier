@@ -1,5 +1,6 @@
 from typing import Dict
 import pandas as pd
+import argparse
 import os
 import mlflow
 from functools import wraps
@@ -261,3 +262,16 @@ def get_class_weights(dataset_train, num_classes, label):
     class_weights = torch.Tensor(class_distribution['image'].tolist())
 
     return class_weights
+
+def get_base_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--image_path', type=str, default='../../images/imagesf2', help='Experiment name.')
+    parser.add_argument('--dataset_path', type=str, default='../dataset', help='Experiment name.')
+    parser.add_argument('--exp', type=str, default='test', help='Experiment name.')
+    parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train.')
+    parser.add_argument('--batch', type=int, default=32, help='Number of epochs to train.')
+    parser.add_argument('--lr', type=float, default=3e-4, help='Initial learning rate.')
+    parser.add_argument('--with_weights', action='store_false', help='If using class weights for tackling class imabalnces.')
+    parser.add_argument('-t', '--tracking', action='store_false', help='If tracking or not with MLFlow.')
+
+    return parser
