@@ -1,6 +1,8 @@
 from typing import Dict
 import pandas as pd
 import os
+import mlflow
+from functools import wraps
 from torch.utils.data import Dataset, DataLoader
 import torch
 from sklearn.model_selection import train_test_split
@@ -15,7 +17,7 @@ def prepare_raw_dataset(base_dir: str, type : str):
     Create the raw dataset.
 
     Get the raw files and put them into pandas dataframe.
-    The dataframe consists of four columns: artwork id, artork name file, artwork style id and artwork genre id.
+    The dataframe consists of four columns: artwork id, artwork name file, artwork style id and artwork genre id.
 
     Args:
         base_dir: the main directory where the raw files are located.
@@ -31,7 +33,7 @@ def prepare_raw_dataset(base_dir: str, type : str):
     dataset = pd.concat([artwork, style, genre], axis=1)
     return dataset
 
-def load_dataset(base_dir: str, image_dir: str, mode : str, label: str = None, transform_type = 'resnet'):
+def load_dataset(base_dir: str, image_dir: str, mode : str, label: str = None, transform_type: str = 'resnet'):
     """
     Create a pytorch Dataset (torch.utils.data.Dataset) for an approach that uses only images.
 
@@ -40,12 +42,13 @@ def load_dataset(base_dir: str, image_dir: str, mode : str, label: str = None, t
         image_dir: the directory where image files are located.
         mode: single_task or multi_task
         label: genre or style. If multitask put None.
-        transform_type: image transformation type. It depends by the model used.
+        transform_type: image transformation type. It depends by the model used. Until now support resnet and vit
 
     Returns:
         datasets for train, validation and test.
     """
     assert mode in ['single_task', 'multi_task']
+    assert transform_type in ['resnet', 'vit']
 
     raw_train = prepare_raw_dataset(base_dir, type = 'train')
     raw_valid = prepare_raw_dataset(base_dir, type = 'validation')
@@ -62,35 +65,34 @@ def load_dataset(base_dir: str, image_dir: str, mode : str, label: str = None, t
     
     return dataset_train, dataset_valid, dataset_test
 
-def load_dataset_kg(base_dir: str, image_dir: str, mode : str, label: str = None, embedding: str = None):
+def load_dataset_multimodal(base_dir: str, image_dir: str, mode : str, label: str = None, emb_type: str = None, emb_train: str = None):
     """
-    Create a pytorch Dataset (torch.utils.data.Dataset) for being used in an contextual approach.
+    Create a pytorch Dataset (torch.utils.data.Dataset) for being used in an contextual approach. This is the dataset used by models like
+    ContextNet.
 
     Args:
         base_dir: the main directory where the raw files are located.
         image_dir: the directory where image files are located.
         mode: single_task or multi_task
-        label: genre or style. If multitask put None.
-        embedding: embedding type. One from {genre, style, artwork}.
+        label: genre or style, for single task mode.
+        emb_type: which node the embeddings encode, may be artwork, style or genre.
+        emb_train: the path of the embeddings of training artworks
     Returns:
         datasets for train, validation and test.
     """
     assert mode in ['single_task', 'multi_task']
-    assert embedding in ['artwork', 'genre', 'style']
+    assert emb_type in ['artwork', 'genre', 'style']
 
     raw_train = prepare_raw_dataset(base_dir, type = 'train')
     raw_valid = prepare_raw_dataset(base_dir, type = 'validation')
     raw_test = prepare_raw_dataset(base_dir, type = 'test')
 
-    if embedding == 'artwork':
-        embeddings = torch.load(os.path.join(base_dir, 'train', f'{embedding}_metapath2vec_embs.pt'))
-    else: 
-        embeddings = torch.load(os.path.join(base_dir, 'train', f'{embedding}_gnn_embs.pt'))
+    embeddings = torch.load(os.path.join(base_dir, 'train', emb_train))
 
     if mode == 'single_task':
         assert label in ['genre', 'style']
 
-        dataset_train = MultiModalArtgraphSingleTask(image_dir, raw_train[['image', label]], embeddings)
+        dataset_train = MultiModalArtgraphSingleTask(image_dir, raw_train[['image', label]], embeddings, emb_type = emb_type)
         dataset_valid = ArtGraphSingleTask(image_dir, raw_valid[['image', label]])
         dataset_test = ArtGraphSingleTask(image_dir, raw_test[['image', label]])
     else:
@@ -100,10 +102,10 @@ def load_dataset_kg(base_dir: str, image_dir: str, mode : str, label: str = None
     
     return dataset_train, dataset_valid, dataset_test
 
-def load_dataset_embeddings(base_dir: str, image_dir: str, mode : str, label: str, emb_node: str, emb_type: str):
+def load_dataset_new_multimodal(base_dir: str, image_dir: str, label: str, emb_type: str, emb_train: str, emb_valid: str, emb_test: str):
     """
     Create a pytorch Dataset (torch.utils.data.Dataset) for being used in a contextual approach that uses
-    embedding also in the forward pass.
+    embedding also in the forward pass, in a single-task approach.
 
     During the training, true embedding are provided. During the validation and test phases projected embedding
     are provided.
@@ -111,58 +113,79 @@ def load_dataset_embeddings(base_dir: str, image_dir: str, mode : str, label: st
     Args:
         base_dir: the main directory where the raw files are located.
         image_dir: the directory where image files are located.
-        mode: single_task or multi_task
         label: genre or style. If multitask put None.
-        emb_node: embedding type. One from {genre, style, artwork}.
-        emb_type: embedding technique from which embeddings have been generates. E.g.
-            gnn, metapath2vec, node2vec.
+        emb_type: which node the embeddings encode, may be artwork, style or genre.
+        emb_train: the path of the (actual) embeddings of train artworks.
+        emb_valid: the path of the (projected) embeddings of train artworks.
+        emb_test: the path of the (projected) embeddings of train artworks.
 
     Returns:
         datasets for train, validation and test.
     """
-    assert mode in ['single_task', 'multi_task']
-    assert emb_node in ['artwork', 'genre', 'style', 'both']
-    assert emb_type in ['gnn', 'metapath2vec', 'node2vec']
 
     raw_train = prepare_raw_dataset(base_dir, type = 'train')
     raw_valid = prepare_raw_dataset(base_dir, type = 'validation')
     raw_test = prepare_raw_dataset(base_dir, type = 'test')
 
-    if mode == 'single_task':
-        assert label in ['genre', 'style']
-        embeddings_train = torch.load(os.path.join(base_dir, 'train', f'{emb_node}_{emb_type}_embs.pt'))
-        embeddings_validation = torch.load(os.path.join(base_dir, 'validation', f'{emb_node}_{emb_type}_projs.pt'))
-        embeddings_test = torch.load(os.path.join(base_dir, 'test', f'{emb_node}_{emb_type}_projs.pt'))
+    embeddings_train = torch.load(os.path.join(base_dir, 'train', emb_train))
+    embeddings_validation = torch.load(os.path.join(base_dir, 'validation', emb_valid))
+    embeddings_test = torch.load(os.path.join(base_dir, 'test', emb_test))
 
-        dataset_train = MultiModalArtgraphSingleTask(image_dir, raw_train[['image', label]], embeddings_train, type = 'train')
-        dataset_valid = MultiModalArtgraphSingleTask(image_dir, raw_valid[['image', label]], embeddings_validation, type = 'validation')
-        dataset_test = MultiModalArtgraphSingleTask(image_dir, raw_test[['image', label]], embeddings_test, type = 'test')
-    else:
-        embeddings_train_genre = torch.load(os.path.join(base_dir, 'train', f'genre_{emb_type}_embs.pt'))
-        embeddings_train_style = torch.load(os.path.join(base_dir, 'train', f'style_{emb_type}_embs.pt'))
-
-        embeddings_validation_genre = torch.load(os.path.join(base_dir, 'validation', f'genre_{emb_type}_projs.pt'))
-        embeddings_validation_style = torch.load(os.path.join(base_dir, 'validation', f'style_{emb_type}_projs.pt'))
-
-        embeddings_test_genre = torch.load(os.path.join(base_dir, 'test', f'genre_{emb_type}_projs.pt'))
-        embeddings_test_style = torch.load(os.path.join(base_dir, 'test', f'style_{emb_type}_projs.pt'))
-
-        dataset_train = NewMultiModalArtgraphMultiTask(image_dir, raw_train[['image', 'style', 'genre']], embeddings_train_style, embeddings_train_genre, 'train')
-        dataset_valid = NewMultiModalArtgraphMultiTask(image_dir, raw_valid[['image', 'style', 'genre']], embeddings_validation_style,embeddings_validation_genre, 'valid')
-        dataset_test = NewMultiModalArtgraphMultiTask(image_dir, raw_test[['image', 'style', 'genre']], embeddings_test_style, embeddings_test_genre, 'test')
+    dataset_train = MultiModalArtgraphSingleTask(image_dir, raw_train[['image', label]], embeddings_train, type = 'train', emb_type = emb_type)
+    dataset_valid = MultiModalArtgraphSingleTask(image_dir, raw_valid[['image', label]], embeddings_validation, type = 'validation', emb_type = emb_type)
+    dataset_test = MultiModalArtgraphSingleTask(image_dir, raw_test[['image', label]], embeddings_test, type = 'test', emb_type = emb_type)
     
     return dataset_train, dataset_valid, dataset_test
 
-def load_dataset_projection(base_dir: str, image_dir: str, node_embedding_name: str, label: str,):
+def load_dataset_multitask_new_multimodal(base_dir: str, image_dir: str, emb_type: str, emb_train: Dict[str, str], emb_valid: Dict[str, str], emb_test: Dict[str, str]):
+    """
+    Create a pytorch Dataset (torch.utils.data.Dataset) for being used in a contextual approach that uses
+    embedding also in the forward pass, in a multi-task approach.
+
+    During the training, true embedding are provided. During the validation and test phases projected embedding
+    are provided.
+
+    Args:
+        base_dir: the main directory where the raw files are located.
+        image_dir: the directory where image files are located.
+        emb_type: which node the embeddings encode, may be artwork, style or genre.
+        emb_train: the path of the (actual) embedding of train artworks.
+        emb_valid: the path of the (projected) embedding of train artworks.
+        emb_test: the path of the (projected) embedding of train artworks.
+
+    Returns:
+        datasets for train, validation and test.
+    """
+
+    raw_train = prepare_raw_dataset(base_dir, type = 'train')
+    raw_valid = prepare_raw_dataset(base_dir, type = 'validation')
+    raw_test = prepare_raw_dataset(base_dir, type = 'test')
+
+    embeddings_train_genre = torch.load(os.path.join(base_dir, 'train', emb_train['genre']))
+    embeddings_train_style = torch.load(os.path.join(base_dir, 'train', emb_train['style']))
+
+    embeddings_validation_genre = torch.load(os.path.join(base_dir, 'validation', emb_valid['genre']))
+    embeddings_validation_style = torch.load(os.path.join(base_dir, 'validation', emb_valid['style']))
+
+    embeddings_test_genre = torch.load(os.path.join(base_dir, 'test', emb_test['genre']))
+    embeddings_test_style = torch.load(os.path.join(base_dir, 'test', emb_test['style']))
+
+    dataset_train = NewMultiModalArtgraphMultiTask(image_dir, raw_train[['image', 'style', 'genre']], embeddings_train_style, embeddings_train_genre, 'train', emb_type)
+    dataset_valid = NewMultiModalArtgraphMultiTask(image_dir, raw_valid[['image', 'style', 'genre']], embeddings_validation_style,embeddings_validation_genre, 'valid', emb_type)
+    dataset_test = NewMultiModalArtgraphMultiTask(image_dir, raw_test[['image', 'style', 'genre']], embeddings_test_style, embeddings_test_genre, 'test', emb_type)
+    
+    return dataset_train, dataset_valid, dataset_test
+
+def load_dataset_projection(base_dir: str, image_dir: str, node_embedding: str, label: str, emb_type: str):
     """
     Create a pytorch Dataset (torch.utils.data.Dataset) for being used to train the projector function.
 
     Args:
         base_dir: the main directory where the raw files are located.
         image_dir: the directory where image files are located.
-        mode: single_task or multi_task.
-        node_embedding_name: node embedding gile name.
+        node_embedding: node embedding file name.
         label: the embedding type (e.g. genre, style or artwork).
+        emb_type: which node the embeddings encode, may be artwork, style or genre.
 
     Returns:
         datasets for train, validation and test.
@@ -170,9 +193,9 @@ def load_dataset_projection(base_dir: str, image_dir: str, node_embedding_name: 
 
     raw = prepare_raw_dataset(base_dir, type = 'train')
 
-    embeddings = torch.load(os.path.join(base_dir, 'train', node_embedding_name))
+    embeddings = torch.load(os.path.join(base_dir, 'train', node_embedding))
 
-    dataset = LabelProjectionDataset(image_dir, raw[['image', label]], embeddings)
+    dataset = LabelProjectionDataset(image_dir, raw[['image', label]], embeddings, emb_type)
 
     train_idx, drop_idx = train_test_split(list(range(len(dataset))), test_size = 0.2, random_state=11)
     dataset_train = Subset(dataset, train_idx)
@@ -199,3 +222,42 @@ def prepare_dataloader(datasets: Dict[str, Dataset], batch_size: int, **kwargs):
     }
 
     return data_loaders
+
+def tracker(is_tracking, type):
+    def decorator(fun):
+        @wraps(fun)
+        def wrapper(*args, **kwargs):
+            loss, acc, epoch = fun(*args, **kwargs)
+            if is_tracking == True:
+                mlflow.log_metric(f'{type} loss', loss, step=epoch)
+                mlflow.log_metric(f'{type} acc', acc.item(), step=epoch)
+            return loss, acc, epoch
+        return wrapper
+    return decorator
+
+def tracker_multitask(is_tracking, type):
+    def decorator(fun):
+        @wraps(fun)
+        def wrapper(*args, **kwargs):
+            loss, acc_style, acc_genre, epoch = fun(*args, **kwargs)
+            if is_tracking == True:
+                mlflow.log_metric(f'{type} loss', loss, step=epoch)
+                mlflow.log_metric(f'{type} acc style', acc_style.item(), step=epoch)
+                mlflow.log_metric(f'{type} acc genre', acc_genre.item(), step=epoch)
+            return loss, acc, epoch
+        return wrapper
+    return decorator
+
+def track_params(args):
+    mlflow.set_experiment(args.exp)
+    for arg in vars(args):
+        mlflow.log_param(arg, getattr(args, arg))
+
+def get_class_weights(dataset_train, num_classes, label):
+    dataset = dataset_train.dataset
+    n_artworks = dataset.groupby(label).count().image.sum()
+    class_distribution = dataset.groupby(label).count()  
+    class_distribution['image'] = class_distribution['image'].map(lambda x: n_artworks/(x*num_classes))
+    class_weights = torch.Tensor(class_distribution['image'].tolist())
+
+    return class_weights

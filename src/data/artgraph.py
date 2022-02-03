@@ -27,7 +27,6 @@ class ArtGraph(InMemoryDataset):
         features (boolean): if assign (True) or not (False) visual features to artwork nodes.
         type (string): the purpose the graph is used for, that is 'train', 'test' or 'validation'.
     """
-
     def __init__(self, root, preprocess='one-hot', transform=None,
                  pre_transform=None, features=True, type='train'):
         preprocess = None if preprocess is None else preprocess.lower()

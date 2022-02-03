@@ -18,6 +18,17 @@ def transform(image: Tensor):
     return preprocess(image)
 
 class MultiModalArtgraph(data.Dataset):
+    """A base class dataset for a multi-modal approach for artwork classification.
+    In addition to the label, for each artwork is assigned an embedding vector, which encodes
+    its contextual information.
+
+    Args:
+        image_dir: the directory in which all the image files are located.
+        df_image_label: a dataframe consisting of 'image' column (the artwork image path into the image_dir directory),
+            labels column.
+        embeddings: a tensor of dimension (n_artworks, embedding_size). The vector embedding[n] is assigned to the image
+            in the nth row in the df_image_label dataframe.  
+    """
     def __init__(self, image_dir:str, df_image_label: DataFrame, embeddings: Tensor):
         self.image_dir = image_dir
         self.dataset = df_image_label
@@ -36,7 +47,8 @@ class MultiModalArtgraph(data.Dataset):
         return image_tensor
 
 class MultiModalArtgraphMultiTask(MultiModalArtgraph):
-
+    """The dataset for a multi-modal multi-task approach for artwork classification.
+    """
     def __init__(self, image_dir:str, df_image_label: DataFrame, embeddings: Tensor):
         columns = df_image_label.columns
         assert 'image' in columns and 'style' in columns and 'genre' in columns
@@ -59,11 +71,13 @@ class MultiModalArtgraphMultiTask(MultiModalArtgraph):
 
 
 class MultiModalArtgraphSingleTask(MultiModalArtgraph):
-
-    def __init__(self, image_dir:str, df_image_label: DataFrame, embeddings: Tensor, type = 'train'):
+    """The dataset for a multi-modal single-task approach for artwork classification.
+    """
+    def __init__(self, image_dir:str, df_image_label: DataFrame, embeddings: Tensor, type = 'train', emb_type = 'artwork'):
         assert 'image' in df_image_label.columns
         #assert len(df_image_label) == embeddings.shape[0]
         self.type = type
+        self.emb_type = emb_type
         super().__init__(image_dir, df_image_label, embeddings)
 
     def __getitem__(self, idx: Tensor):
@@ -75,7 +89,10 @@ class MultiModalArtgraphSingleTask(MultiModalArtgraph):
 
         label_id = self.dataset.iloc[idx, 1]
         if self.type == 'train':
-            embedding = self.embeddings[label_id]
+            if self.emb_type == 'artwork':
+                embedding = self.embeddings[idx]
+            if self.emb_type != 'artwork':
+                embedding = self.embeddings[label_id]
         else:
             embedding = self.embeddings[idx]
 
@@ -83,8 +100,9 @@ class MultiModalArtgraphSingleTask(MultiModalArtgraph):
 
 class LabelProjectionDataset(MultiModalArtgraph):
 
-    def __init__(self, image_dir:str, df_image_label: DataFrame, embeddings: Tensor):
+    def __init__(self, image_dir:str, df_image_label: DataFrame, embeddings: Tensor, emb_type):
         super().__init__(image_dir, df_image_label, embeddings)
+        self.emb_type = emb_type
 
     def __getitem__(self, idx: Tensor):
         if torch.is_tensor(idx):
@@ -94,13 +112,16 @@ class LabelProjectionDataset(MultiModalArtgraph):
         image_tensor = self.prepare_image(image_path)
 
         label_id = self.dataset.iloc[idx, 1]
-        label_embedding = self.embeddings[label_id]
+        if self.emb_type == 'artwork':
+            emb = self.embeddings[idx]
+        else:
+            emb = self.embeddings[label_id]
 
-        return image_tensor, label_embedding
+        return image_tensor, emb
 
 class NewMultiModalArtgraphMultiTask:
 
-    def __init__(self, image_dir:str, df_image_label: DataFrame, embedding_style: Tensor, embedding_genre: Tensor, type: str = 'train'):
+    def __init__(self, image_dir:str, df_image_label: DataFrame, embedding_style: Tensor, embedding_genre: Tensor, type: str = 'train', emb_type = 'artwork'):
         columns = df_image_label.columns
         assert 'image' in columns and 'style' in columns and 'genre' in columns
 
@@ -109,6 +130,7 @@ class NewMultiModalArtgraphMultiTask:
         self.embedding_style = embedding_style
         self.embedding_genre = embedding_genre
         self.type = type
+        self.emb_type = emb_type
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -132,8 +154,12 @@ class NewMultiModalArtgraphMultiTask:
         style_id = self.dataset.iloc[idx, 1]
         genre_id = self.dataset.iloc[idx, 2]
         if self.type == 'train':
-            embedding_style = self.embedding_style[style_id]
-            embedding_genre = self.embedding_genre[genre_id]
+            if self.emb_type == 'artwork':
+                embedding_style = self.embedding_style[idx]
+                embedding_genre = self.embedding_genre[idx]
+            else:
+                embedding_style = self.embedding_style[style_id]
+                embedding_genre = self.embedding_genre[genre_id]
         else:
             embedding_style = self.embedding_style[idx]
             embedding_genre = self.embedding_genre[idx]

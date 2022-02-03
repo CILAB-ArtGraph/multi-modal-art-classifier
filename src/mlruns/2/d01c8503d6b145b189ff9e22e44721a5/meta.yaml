@@ -1,0 +1,15 @@
+artifact_uri: file:///home/jbananafish/Desktop/Master/Thesis/code/art-classification-multimodal/src/mlruns/2/d01c8503d6b145b189ff9e22e44721a5/artifacts
+end_time: 1643820542595
+entry_point_name: ''
+experiment_id: '2'
+lifecycle_stage: active
+name: ''
+run_id: d01c8503d6b145b189ff9e22e44721a5
+run_uuid: d01c8503d6b145b189ff9e22e44721a5
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1643820542327
+status: 3
+tags: []
+user_id: jbananafish

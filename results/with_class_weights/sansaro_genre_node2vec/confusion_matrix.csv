@@ -1,0 +1,19 @@
+,art deco,art nouveau (modern),baroque,expressionism,contemporary realism,neo-expressionism,magic realism,cubism,northern renaissance,early renaissance,minimalism,symbolism,art informel,high renaissance,rococo,lyrical abstraction,fauvism,abstract expressionism
+art deco,299,0,5,2,9,11,3,21,4,7,0,10,4,26,18,6,6,3
+art nouveau (modern),0,299,0,0,4,3,4,3,20,0,0,0,0,0,4,1,0,13
+baroque,3,4,172,0,8,3,10,18,5,1,5,2,1,9,10,17,8,1
+expressionism,5,0,1,177,8,6,1,6,1,61,0,1,2,0,7,0,1,1
+contemporary realism,89,39,51,30,1119,45,18,90,91,147,9,52,168,123,66,54,147,91
+neo-expressionism,10,6,12,10,20,195,10,67,18,5,3,25,20,24,4,17,11,14
+magic realism,6,15,7,0,3,30,1214,186,9,0,12,16,1,1,19,32,4,12
+cubism,16,4,8,8,13,35,82,224,7,10,7,19,6,1,12,26,7,7
+northern renaissance,3,169,17,2,34,41,48,18,1945,0,20,27,7,15,56,21,24,307
+early renaissance,64,0,5,566,177,47,19,60,1,1864,7,33,118,37,55,28,26,3
+minimalism,0,0,4,0,0,4,11,2,9,0,225,0,0,0,0,18,1,0
+symbolism,3,0,4,1,2,7,10,26,9,6,10,270,3,5,13,2,29,12
+art informel,20,5,3,17,45,27,7,25,11,33,1,16,793,170,38,11,61,7
+high renaissance,21,2,5,4,12,11,0,4,8,5,1,8,45,190,6,3,16,1
+rococo,35,11,18,36,18,12,17,25,20,30,6,18,9,22,474,10,32,21
+lyrical abstraction,2,1,2,3,6,9,14,25,3,1,41,4,3,3,5,391,0,4
+fauvism,6,2,12,11,32,19,8,20,3,8,1,49,23,17,28,8,448,13
+abstract expressionism,0,34,0,0,15,7,7,11,64,0,0,26,6,2,12,2,8,757
