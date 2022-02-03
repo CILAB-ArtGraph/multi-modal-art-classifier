@@ -165,4 +165,3 @@ class NewMultiModalArtgraphMultiTask:
             embedding_genre = self.embedding_genre[idx]
 
         return image_tensor, embedding_style, embedding_genre, [style_id, genre_id]
-

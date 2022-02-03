@@ -149,9 +149,9 @@ def load_dataset_multitask_new_multimodal(base_dir: str, image_dir: str, emb_typ
         base_dir: the main directory where the raw files are located.
         image_dir: the directory where image files are located.
         emb_type: which node the embeddings encode, may be artwork, style or genre.
-        emb_train: the path of the (actual) embedding of train artworks.
-        emb_valid: the path of the (projected) embedding of train artworks.
-        emb_test: the path of the (projected) embedding of train artworks.
+        emb_train: the path of the (actual) embeddings of train artworks.
+        emb_valid: the path of the (projected) embeddings of train artworks.
+        emb_test: the path of the (projected) embeddings of train artworks.
 
     Returns:
         datasets for train, validation and test.
@@ -171,7 +171,7 @@ def load_dataset_multitask_new_multimodal(base_dir: str, image_dir: str, emb_typ
     embeddings_test_style = torch.load(os.path.join(base_dir, 'test', emb_test['style']))
 
     dataset_train = NewMultiModalArtgraphMultiTask(image_dir, raw_train[['image', 'style', 'genre']], embeddings_train_style, embeddings_train_genre, 'train', emb_type)
-    dataset_valid = NewMultiModalArtgraphMultiTask(image_dir, raw_valid[['image', 'style', 'genre']], embeddings_validation_style,embeddings_validation_genre, 'valid', emb_type)
+    dataset_valid = NewMultiModalArtgraphMultiTask(image_dir, raw_valid[['image', 'style', 'genre']], embeddings_validation_style, embeddings_validation_genre, 'valid', emb_type)
     dataset_test = NewMultiModalArtgraphMultiTask(image_dir, raw_test[['image', 'style', 'genre']], embeddings_test_style, embeddings_test_genre, 'test', emb_type)
     
     return dataset_train, dataset_valid, dataset_test
@@ -244,7 +244,7 @@ def tracker_multitask(is_tracking, type):
                 mlflow.log_metric(f'{type} loss', loss, step=epoch)
                 mlflow.log_metric(f'{type} acc style', acc_style.item(), step=epoch)
                 mlflow.log_metric(f'{type} acc genre', acc_genre.item(), step=epoch)
-            return loss, acc, epoch
+            return loss, acc_style, acc_genre, epoch
         return wrapper
     return decorator
 
