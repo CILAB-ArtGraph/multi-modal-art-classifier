@@ -35,7 +35,7 @@ for proj_name in proj_names:
 
     label = 'genre'
     dataset_valid, dataset_test = load_dataset(
-        base_dir = '../dataset/final_full', image_dir ='../../images/imagesf2', label = label)
+        base_dir = '../dataset', image_dir ='../../images/imagesf2', label = label)
 
     from torch.utils.data import DataLoader
     from tqdm import tqdm
