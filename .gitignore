@@ -153,3 +153,4 @@ src/checkpoints/
 src/*.pt
 *.pt
 .envs
+src/test_pipeline.sh

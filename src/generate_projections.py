@@ -1,11 +1,12 @@
 import os
 import torch
 import pandas as pd
-from models.models_kg import LabelProjector
-from data.data import ArtGraphSingleTask
-
 from os import listdir
 from os.path import isfile, join
+
+from models.models_kg import LabelProjector
+from data.data import ArtGraphSingleTask
+import config
 
 def prepare_raw_dataset(base_dir: str, type : str):
     artwork = pd.read_csv(os.path.join(base_dir, type, 'mapping/artwork_entidx2name.csv'), names=['idx', 'image'])
@@ -15,27 +16,25 @@ def prepare_raw_dataset(base_dir: str, type : str):
     dataset = pd.concat([artwork, style, genre], axis=1)
     return dataset
 
-def load_dataset(base_dir: str, image_dir: str, label: str = None):
+def load_dataset(base_dir: str, image_dir: str):
     raw_valid = prepare_raw_dataset(base_dir, type = 'validation')
     raw_test = prepare_raw_dataset(base_dir, type = 'test')
-    dataset_valid = ArtGraphSingleTask(image_dir, raw_valid[['image', label]])
-    dataset_test = ArtGraphSingleTask(image_dir, raw_test[['image', label]])
+    dataset_valid = ArtGraphSingleTask(image_dir, raw_valid[['image', 'style', 'genre']])
+    dataset_test = ArtGraphSingleTask(image_dir, raw_test[['image', 'style', 'genre']])
     
     return dataset_valid, dataset_test
 
-proj_folder = '../projections'
-proj_names = [f for f in listdir(proj_folder) if isfile(join(proj_folder, f))]
+proj_names = [f for f in listdir(config.PROJECTIONS_DIR) if isfile(join(config.PROJECTIONS_DIR, f))]
 
 for proj_name in proj_names:
     model = LabelProjector(128)
-    model.load_state_dict(torch.load(os.path.join(proj_folder, proj_name)))
+    model.load_state_dict(torch.load(os.path.join(config.PROJECTIONS_DIR, proj_name)))
     model = model.to('cuda', non_blocking=True)
 
     model.eval()
 
-    label = 'genre'
     dataset_valid, dataset_test = load_dataset(
-        base_dir = '../dataset', image_dir ='../../images/imagesf2', label = label)
+        base_dir = config.DATASET_DIR, image_dir = config.IMAGE_DIR)
 
     from torch.utils.data import DataLoader
     from tqdm import tqdm
@@ -53,6 +52,7 @@ for proj_name in proj_names:
 
         total_loss = total_examples = 0
 
+        print('Generating projections for validation artworks...')
         for idx, images in tqdm(enumerate(loader_valid)):
             image, _ = images
             image = image.to('cuda')
@@ -62,7 +62,7 @@ for proj_name in proj_names:
             
             x_validation[idx*32 : (idx+1)*32] = out
 
-    torch.save(x_validation, f'valid_{proj_name}')
+    torch.save(x_validation, os.path.join(config.DATASET_DIR, 'validation', 'embeddings', proj_name))
 
     x_test = torch.zeros((len(dataset_test), 128))
 
@@ -71,6 +71,7 @@ for proj_name in proj_names:
 
         total_loss = total_examples = 0
 
+        print('Generating projections for test artworks...')
         for idx, images in tqdm(enumerate(loader_test)):
             image, _ = images
             image = image.to('cuda')
@@ -80,4 +81,4 @@ for proj_name in proj_names:
             
             x_test[idx*32 : (idx+1)*32] = out
 
-    torch.save(x_test, f'test_{proj_name}')
+    torch.save(x_test, os.path.join(config.DATASET_DIR, 'test', 'embeddings', proj_name))

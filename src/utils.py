@@ -9,6 +9,7 @@ import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Subset
 
+import config
 from data.data import ArtGraphSingleTask, ArtGraphMultiTask
 from data.data_kg import (LabelProjectionDataset, MultiModalArtgraphSingleTask, MultiModalArtgraphMultiTask, 
                           LabelProjectionDataset, NewMultiModalArtgraphMultiTask)
@@ -177,7 +178,7 @@ def load_dataset_multitask_new_multimodal(base_dir: str, image_dir: str, emb_typ
     
     return dataset_train, dataset_valid, dataset_test
 
-def load_dataset_projection(base_dir: str, image_dir: str, node_embedding: str, label: str, emb_type: str):
+def load_dataset_projection(base_dir: str, image_dir: str, node_embedding: str, emb_type: str):
     """
     Create a pytorch Dataset (torch.utils.data.Dataset) for being used to train the projector function.
 
@@ -194,9 +195,9 @@ def load_dataset_projection(base_dir: str, image_dir: str, node_embedding: str, 
 
     raw = prepare_raw_dataset(base_dir, type = 'train')
 
-    embeddings = torch.load(os.path.join(base_dir, 'train', node_embedding))
+    embeddings = torch.load(os.path.join(config.EMBEDDINGS_DIR, node_embedding))
 
-    dataset = LabelProjectionDataset(image_dir, raw[['image', label]], embeddings, emb_type)
+    dataset = LabelProjectionDataset(image_dir, raw[['image', "style", "genre"]], embeddings, emb_type)
 
     train_idx, drop_idx = train_test_split(list(range(len(dataset))), test_size = 0.2, random_state=11)
     dataset_train = Subset(dataset, train_idx)

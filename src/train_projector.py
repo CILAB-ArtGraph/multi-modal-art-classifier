@@ -1,28 +1,23 @@
-import argparse
+from tabnanny import check
 from torch.nn.modules import dropout
 from tqdm import tqdm
 import torch
-import mlflow
+import os
+import config
 
 from models.models_kg import LabelProjector
 from models.models import EarlyStopping
-from utils import load_dataset_projection, prepare_dataloader
+from utils import load_dataset_projection, prepare_dataloader, get_base_arguments
 
 torch.manual_seed(1)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--exp', type=str, default='label projections', help='Experiment name.')
-parser.add_argument('--image_path', type=str, default='../../images/imagesf2', help='Image folder path.')
-parser.add_argument('--dataset_path', type=str, default='../dataset', help='Dataset path.')
-parser.add_argument('--node_embedding', type=str, default='gnn_style_embeddings.pt', help='Node embedding file name.')
-parser.add_argument('--label', type=str, default='style', help='Label projection. Options: (style|genre).')
-parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train.')
-parser.add_argument('--batch', type=int, default=32, help='The batch size.')
-parser.add_argument('--lr', type=float, default=3e-4, help='Initial learning rate.')
+parser = get_base_arguments()
+parser.add_argument('--node_embedding', type=str, default='gnn_artwork_genre_embs_graph.pt', help='Node embedding file name.')
+parser.add_argument('--emb_type', type=str, default='artwork', help='The embedding node type (artwork|style|genre).')
 args = parser.parse_args()
 
 dataset_train, dataset_valid, dataset_test = load_dataset_projection(
-    base_dir = args.dataset_path, image_dir = args.image_path, node_embedding_name = args.node_embedding, label = args.label)
+    base_dir = args.dataset_path, image_dir = args.image_path, node_embedding = args.node_embedding, emb_type = args.emb_type)
 
 data_loaders = prepare_dataloader({'train': dataset_train, 'valid': dataset_valid, 'test': dataset_test},
                                                   batch_size = args.batch, num_workers = 6, shuffle = True,
@@ -34,23 +29,23 @@ model = model.to('cuda', non_blocking=True)
 criterion = torch.nn.SmoothL1Loss()
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
 
-checkpoint_name =  f'{args.label}_{args.node_embedding}_checkpoint_projector.pt'
-early_stop = EarlyStopping(patience = 1, min_delta = 0.001, checkpoint_path = checkpoint_name)
+checkpoint_name =  f'{args.exp}_checkpoint_projector.pt'
+early_stop = EarlyStopping(patience = 1, min_delta = 0.001, checkpoint_path = os.path.join(config.PROJECTIONS_DIR, checkpoint_name))
 
 def train():
     model.train()
 
     total_loss = total_examples = 0 
-    for images, label_embedding in tqdm(data_loaders['train']):
+    for images, embedding in tqdm(data_loaders['train']):
         images = images.to('cuda', non_blocking=True)
-        label_embedding = label_embedding.to('cuda', non_blocking=True)
+        embedding = embedding.to('cuda', non_blocking=True)
 
         optimizer.zero_grad()
 
         with torch.cuda.amp.autocast():
             out = model(images)
 
-            loss = criterion(out, label_embedding)
+            loss = criterion(out, embedding)
             loss.backward()
             optimizer.step()
 
@@ -88,7 +83,7 @@ def valid():
 @torch.no_grad()
 def test():
     model = LabelProjector(emb_size = 128)
-    model.load_state_dict(torch.load(checkpoint_name))
+    model.load_state_dict(torch.load(os.path.join(config.PROJECTIONS_DIR, checkpoint_name)))
     model = model.to('cuda', non_blocking=True)
 
     total_loss = total_examples = 0
@@ -109,27 +104,11 @@ def test():
 
     return epoch_loss
 
-mlruns_path = 'file:///home/jbananafish/Desktop/Master/Thesis/code/art-classification-multimodal/tracking/mlruns'
-mlflow.set_tracking_uri(mlruns_path)
-mlflow.set_experiment(args.exp)
-with mlflow.start_run() as run:
-    mlflow.log_param('label', args.label)
-    mlflow.log_param('epochs', args.epochs)
-    mlflow.log_param('batch size', args.batch)
-    mlflow.log_param('learning rate', args.lr)
+for epoch in range(args.epochs):
+    loss = train()
+    print(f'Train loss: {loss}')
+    loss = valid()
+    print(f'Validation loss: {loss}')
 
-    for epoch in range(args.epochs):
-        loss = train()
-        print(f'Train loss: {loss}')
-        mlflow.log_metric(f'train loss', loss, step=epoch)
-        loss = valid()
-        print(f'Validation loss: {loss}')
-        mlflow.log_metric(f'valid loss', loss, step=epoch)
-
-        if early_stop.stop:
-            mlflow.log_param(f'early stop', True)
-            break
-
-    loss = test()
-    print(f'Test loss: {loss}')
-    mlflow.log_metric(f'test loss', loss)
+loss = test()
+print(f'Test loss: {loss}')

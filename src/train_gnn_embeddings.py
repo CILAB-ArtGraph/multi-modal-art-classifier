@@ -8,11 +8,13 @@ import os
 
 from data.artgraph import ArtGraph
 from models.models_graph import HeteroSGNN
+import config
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--label', type=str, default='style', help='Label to predict (style|genre).')
 parser.add_argument('--operator', type=str, default='GATConv', help='GCN operator.')
 parser.add_argument('--lr', type=int, default=0.01, help='Learning rate.')
+parser.add_argument('--epochs', type=int, default=50, help='Epochs.')
 args = parser.parse_args()
 
 def get_accuracy(predicted, labels):
@@ -64,6 +66,9 @@ def hetero_test():
     return val_losses, val_accuracies, test_losses, test_accuracies
 
 def del_some_nodes(data):
+    """Delete some specific nodes and relations, if you don't want to generate the
+    embeddings on the full ArtGraph.
+    """
     del data['gallery']
     del data['field']
     del data['movement']
@@ -75,6 +80,7 @@ def del_some_nodes(data):
     del data['artwork', 'genre_rel','genre']
 
 def save_embeddings(model, label):
+    print('Saving embeddings...')
     import copy
     new_model = copy.deepcopy(model)
 
@@ -82,7 +88,9 @@ def save_embeddings(model, label):
     with torch.no_grad():
         emb, _ = new_model(data_train_full.x_dict, data_train_full.edge_index_dict)
     
-    torch.save(emb['artwork'], os.path.join('dataset', 'train', f"gnn_artwork_{label}_embs.pt"))
+    torch.save(emb['artwork'], os.path.join(config.EMBEDDINGS_DIR, f"test_gnn_artwork_{label}_embs.pt"))
+    torch.save(emb['artwork'], os.path.join(config.EMBEDDINGS_DIR, f"test_gnn_{label}_embs.pt"))
+    print('Saved.')
 
 
 operator_registry = {
@@ -99,10 +107,10 @@ activation_registry = {
 }
 
 
-base_data_train_full = ArtGraph("dataset/train", preprocess='one-hot', features=True, type='train')
-base_data_train = ArtGraph("dataset/train_train", preprocess='one-hot', features=True, type='train')
-base_data_validation = ArtGraph("dataset/train_validation", preprocess='one-hot', features=True, type='validation')
-base_data_test = ArtGraph("dataset/train_test", preprocess='one-hot', features=True, type='test')
+base_data_train_full = ArtGraph(os.path.join(config.DATASET_DIR, 'train'), preprocess='one-hot', features=True, type='train')
+base_data_train = ArtGraph(os.path.join(config.DATASET_DIR, 'train_train'), preprocess='one-hot', features=True, type='train')
+base_data_validation = ArtGraph(os.path.join(config.DATASET_DIR, 'train_validation'), preprocess='one-hot', features=True, type='validation')
+base_data_test = ArtGraph(os.path.join(config.DATASET_DIR, 'train_test'), preprocess='one-hot', features=True, type='test')
 
 data_train_full, data_train, data_validation, data_test = base_data_train_full [0], base_data_train[0], base_data_validation[0], base_data_test[0]
 
@@ -138,7 +146,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 with torch.no_grad(): 
     out = model(data_train.x_dict, data_train.edge_index_dict)
 
-for epoch in tqdm(range(0, 2)):
+for epoch in tqdm(range(0, args.epochs)):
     out, train_losses, train_accuracies = hetero_training()
     val_losses, val_accuracies, _, _ = hetero_test()
     if epoch % 5 == 0:
