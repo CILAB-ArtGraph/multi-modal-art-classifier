@@ -5,7 +5,7 @@ The aim of this project is to develop an artwork classifier that uses both visua
 ArtGraph is a knowledge graph based on WikiArt and DBpedia, that integrates a rich body of information about artworks, artists, painting schools, etc.
 In recent works ArtGraph has been used for multi-output classification tasks. The objective is that given an artwork we want to predict its style and genre.
 
-## Requirements
+## Main requirements
 
 numpy
 
@@ -27,6 +27,8 @@ scikit-learn
 Clone the repository, then
 
 `cd multi-modal-art-classifier/src`
+
+You can use [conda](https://docs.conda.io/en/latest/) to create a new environment running `conda env create --file=environments.yml`. 
 
 ### Single-task approach: 
 An example of training a classifier which learn to predict the artworks' style.

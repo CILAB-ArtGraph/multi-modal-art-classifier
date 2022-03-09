@@ -1,4 +1,4 @@
-import argparse
+import os
 from torch.nn.modules import dropout
 from tqdm import tqdm
 import torch
@@ -7,6 +7,7 @@ import mlflow
 from models.models_kg import NewMultiModalMultiTask
 from models.models import EarlyStopping
 from utils import load_dataset_multitask_new_multimodal, prepare_dataloader, tracker_multitask, track_params, get_class_weights, get_base_arguments
+import config
 
 torch.manual_seed(1)
 
@@ -51,7 +52,7 @@ else:
     criterion_genre = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
 
-checkpoint_name = f'{args.emb_type}_new_multi_modal_multitaskcheckpoint.pt'
+checkpoint_name = os.path.join(config.CHECKPOINTS_DIR, f'{args.label}_{args.net}_new-multimodal_multi-task_checkpoint.pt')
 early_stop = EarlyStopping(patience = 3, min_delta = 0.001, checkpoint_path = checkpoint_name)
 
 @tracker_multitask(args.tracking, 'train')

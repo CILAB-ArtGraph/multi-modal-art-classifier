@@ -2,10 +2,12 @@ import argparse
 from tqdm import tqdm
 import torch
 import mlflow
+import os
 
 from models.models_kg import MultiModalMultiTask, ContextNetlMultiTask
 from models.models import EarlyStopping
 from utils import load_dataset_multimodal, prepare_dataloader, tracker_multitask, track_params, get_class_weights, get_base_arguments
+import config
 
 torch.manual_seed(1)
 
@@ -53,7 +55,7 @@ else:
     optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
     lamb = 0.6
 
-checkpoint_name = f'{args.net}_emb_kg_multitask_checkpoint.pt'
+checkpoint_name = os.path.join(config.CHECKPOINTS_DIR, f'{args.net}_multi-task_checkpoint.pt')
 early_stop = EarlyStopping(patience = 1, min_delta = 0.001, checkpoint_path = checkpoint_name)
 
 @tracker_multitask(args.tracking, 'train')

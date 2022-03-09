@@ -1,10 +1,11 @@
-import argparse
 from tqdm import tqdm
+import os
 import torch
 import mlflow
 
 from models.models import ResnetSingleTask, EarlyStopping
 from utils import load_dataset, prepare_dataloader, tracker, track_params, get_class_weights, get_base_arguments
+import config
 
 torch.manual_seed(1)
 
@@ -37,7 +38,7 @@ else:
 
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
 
-checkpoint_name = f'{args.label}_baseline_single-task_model_checkpoint.pt'
+checkpoint_name = os.path.join(config.CHECKPOINTS_DIR, f'{args.label}_baseline_single-task_checkpoint.pt')
 early_stop = EarlyStopping(patience = 10, min_delta = 0.001, checkpoint_path = checkpoint_name)
 
 @tracker(args.tracking, 'train')

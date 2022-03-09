@@ -1,11 +1,12 @@
-import argparse
 from tqdm import tqdm
 import torch
 import mlflow
+import os
 
 from models.models_kg import NewMultiModalSingleTask
 from models.models import EarlyStopping
 from utils import load_dataset_new_multimodal, prepare_dataloader, tracker, track_params, get_class_weights, get_base_arguments
+import config
 
 torch.manual_seed(1)
 
@@ -42,7 +43,7 @@ else:
     class_criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
 
-checkpoint_name = f'{args.label}_new_multi_modal_checkpoint.pt'
+checkpoint_name = os.path.join(config.CHECKPOINTS_DIR, f'{args.label}_new-multimodal_single-task_checkpoint.pt')
 early_stop = EarlyStopping(patience = 3, min_delta = 0.001, checkpoint_path = checkpoint_name)
 
 @tracker(args.tracking, 'train')

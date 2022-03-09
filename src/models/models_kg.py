@@ -191,7 +191,6 @@ class LabelProjector(nn.Module):
 
         self.encoder = nn.Linear(len_last, emb_size)
 
-
     def forward(self, img: Tensor) -> List[Tensor]:
 
         visual_features = self.resnet(img)
