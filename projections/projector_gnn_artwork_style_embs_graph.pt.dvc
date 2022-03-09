@@ -1,0 +1,4 @@
+outs:
+- md5: f60cbe46ac4392d4159894e39e2b063b
+  size: 95398977
+  path: projector_gnn_artwork_style_embs_graph.pt

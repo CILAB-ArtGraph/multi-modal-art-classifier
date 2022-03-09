@@ -155,3 +155,4 @@ src/*.pt
 .envs
 src/test_pipeline.sh
 src/mlruns
+/dataset
