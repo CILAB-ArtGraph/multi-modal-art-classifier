@@ -1,0 +1,5 @@
+outs:
+- md5: c38fa3665f68619db81a0725d99d461f.dir
+  size: 175207767
+  nfiles: 89
+  path: train_validation

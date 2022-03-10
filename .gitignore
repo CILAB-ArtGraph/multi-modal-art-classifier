@@ -139,9 +139,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-#data
-dataset/
-
 #test utilities
 notebooks/
 
@@ -155,4 +152,4 @@ src/*.pt
 .envs
 src/test_pipeline.sh
 src/mlruns
-/dataset
+dataset/sub_artgraph/
