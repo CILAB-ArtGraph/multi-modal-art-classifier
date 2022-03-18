@@ -23,6 +23,8 @@ mlflow 1.2.0
 
 scikit-learn
 
+dvc
+
 ## Usage
 Clone the repository, then
 
@@ -62,6 +64,16 @@ python train_new_multimodal.py
     --lr <learning_rate>
 ```
 
+## Download the dataset and the embeddings
+You will need `dvc` for getting the dataset and the embeddings (download [here](https://drive.google.com/drive/folders/1omiDdfeC--Nb7X8Z0i2t8bfRpRInvBAe?usp=sharing) the artwork images). Anyway, in the folder `checkpoints` you can find all the generated models ready for testing.
+
+Run `dvc` pull. After that wait until the required folders and files are downloaded.
+
+Now, you can run the best model (it will use the best embeddings):
+```
+python train_new_multimodal_multitask.py
+    --architecture vit
+```
 
 ## Authors and acknowledgment
 Vincenzo Digeno, v.digeno@studenti.uniba.it

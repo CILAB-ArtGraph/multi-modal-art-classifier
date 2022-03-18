@@ -223,9 +223,6 @@ def load_dataset_projection(base_dir: str, image_dir: str, node_embedding: str, 
     return dataset_train, dataset_valid, dataset_test
 
 def prepare_dataloader(datasets: Dict[str, Dataset], batch_size: int, **kwargs):
-    """
-    
-    """
     train = DataLoader(datasets['train'], batch_size = batch_size, **kwargs)
     valid = DataLoader(datasets['valid'], batch_size = batch_size, **kwargs)
     test = DataLoader(datasets['test'], batch_size = batch_size, **kwargs)

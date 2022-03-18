@@ -3,7 +3,7 @@ import torch
 import mlflow
 import numpy as np
 
-from models.models import ResnetMultiTask, EarlyStopping
+from models.models import ResnetMultiTask, EarlyStopping, ViTMultiTask
 from utils import load_dataset, prepare_dataloader, tracker_multitask, track_params, get_class_weights, get_base_arguments
 import os
 import config
@@ -11,6 +11,8 @@ import config
 torch.manual_seed(1)
 
 parser = get_base_arguments()
+parser.add_argument('--architecture', type=str, default='resnet', help='Architecture (resnet|vit).')
+parser.add_argument('--dropout', type=float, default=0.4, help='Dropout.')
 args = parser.parse_args()
 
 dataset_train, dataset_valid, dataset_test = load_dataset(
@@ -26,7 +28,10 @@ num_classes = {
     'style': 32
 }
 
-model = ResnetMultiTask(num_classes)
+if args.architecture == 'resnet':
+    model = ResnetMultiTask(num_classes, args.dropout)
+else:
+    model = ViTMultiTask(num_classes, args.dropout)
 model = model.to('cuda', non_blocking=True)
 
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
@@ -39,7 +44,7 @@ else:
     criterion_style = torch.nn.CrossEntropyLoss()
     criterion_genre = torch.nn.CrossEntropyLoss()
 
-checkpoint_name = os.path.join(config.CHECKPOINTS_DIR, f'{args.label}_baseline_single-task_checkpoint.pt')
+checkpoint_name = os.path.join(config.CHECKPOINTS_DIR, f'{args.label}_{args.architecture}_baseline_single-task_checkpoint.pt')
 early_stop = EarlyStopping(patience = 3, min_delta = 0.001, checkpoint_path = checkpoint_name)
 
 w_style = 0.6
@@ -114,7 +119,10 @@ def valid(epoch):
 @torch.no_grad()
 def test():
 
-    model = ResnetMultiTask(num_classes)
+    if args.architecture == 'resnet':
+        model = ResnetMultiTask(num_classes)
+    else:
+        model = ViTMultiTask(num_classes)
     model.load_state_dict(torch.load(checkpoint_name))
     model = model.to('cuda', non_blocking=True)
 

@@ -17,6 +17,15 @@ def transform(image: Tensor):
 
     return preprocess(image)
 
+def vit_transform(image: Tensor):
+    preprocess = Compose([
+        Resize((224,224)),
+        ToTensor(),
+        Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    ])
+
+    return preprocess(image)
+
 class MultiModalArtgraph(data.Dataset):
     """A base class dataset for a multi-modal approach for artwork classification.
     In addition to the label, for each artwork is assigned an embedding vector, which encodes
@@ -121,7 +130,7 @@ class LabelProjectionDataset(MultiModalArtgraph):
 
 class NewMultiModalArtgraphMultiTask:
 
-    def __init__(self, image_dir:str, df_image_label: DataFrame, embedding_style: Tensor, embedding_genre: Tensor, type: str = 'train', emb_type = 'artwork'):
+    def __init__(self, image_dir:str, df_image_label: DataFrame, embedding_style: Tensor, embedding_genre: Tensor, type: str = 'train', emb_type = 'artwork', transform_type = 'resnet'):
         columns = df_image_label.columns
         assert 'image' in columns and 'style' in columns and 'genre' in columns
 
@@ -131,6 +140,7 @@ class NewMultiModalArtgraphMultiTask:
         self.embedding_genre = embedding_genre
         self.type = type
         self.emb_type = emb_type
+        self.transform_type = transform_type
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -140,7 +150,10 @@ class NewMultiModalArtgraphMultiTask:
         image = Image.open(image_path)
         if(image.mode != 'RGB'):
             image = image.convert('RGB')
-        image_tensor = transform(image)
+        if self.transform_type == 'resnet':
+            image_tensor = transform(image)
+        else:
+            image_tensor = vit_transform(image)
 
         return image_tensor
 

@@ -4,7 +4,7 @@ from tqdm import tqdm
 import torch
 import mlflow
 
-from models.models_kg import NewMultiModalMultiTask
+from models.models_kg import NewMultiModalMultiTask, NewMultiModalMultiTaskViT
 from models.models import EarlyStopping
 from utils import load_dataset_multitask_new_multimodal, prepare_dataloader, tracker_multitask, track_params, get_class_weights, get_base_arguments
 import config
@@ -21,6 +21,7 @@ parser.add_argument('--emb_train_style', type=str, default='gnn_style_embs_graph
 parser.add_argument('--emb_valid_style', type=str, default='gnn_style_valid_embs_graph.pt', help='Embedding style valid file name.')
 parser.add_argument('--emb_test_style', type=str, default='gnn_style_test_embs_graph.pt', help='Embedding style test file name.')
 parser.add_argument('--dropout', type=float, default=0.4, help='Dropout.')
+parser.add_argument('--architecture', type=str, default='resnet', help='Architecture (resnet|vit).')
 args = parser.parse_args()
 
 dataset_train, dataset_valid, dataset_test = load_dataset_multitask_new_multimodal(
@@ -38,8 +39,10 @@ num_classes = {
     'style': 32
 }
 
-
-model = NewMultiModalMultiTask(emb_size = 128, num_classes = num_classes, dropout=0)
+if args.architecture == 'resnet':
+    model = NewMultiModalMultiTask(emb_size = 128, num_classes = num_classes, dropout=args.dropout)
+else:
+    model = NewMultiModalMultiTaskViT(emb_size = 128, num_classes = num_classes, dropout=args.dropout)
 model = model.to('cuda', non_blocking=True)
 
 if args.with_weights:
@@ -105,8 +108,8 @@ def valid(epoch):
             with torch.cuda.amp.autocast():
                 out = model(images, style_embeddings, genre_embeddings)
 
-                style_loss = 0.5 * criterion(out[0], style_labels)
-                genre_loss = 0.5 * criterion(out[1], genre_labels)
+                style_loss = 0.5 * criterion_style(out[0], style_labels)
+                genre_loss = 0.5 * criterion_genre(out[1], genre_labels)
                 loss = style_loss + genre_loss
                 total_loss = total_loss + loss.item() * images.size(0)
 

@@ -45,15 +45,15 @@ class ResnetMultiTask(nn.Module):
     (image) -> (resnet50) -> (linear-genre)
     """
 
-    def __init__(self, num_classes: Dict[str, int]):
+    def __init__(self, num_classes: Dict[str, int], dropout: float = 0):
         super(ResnetMultiTask, self).__init__()
 
         self.resnet = models.resnet50(pretrained = True)
         len_last = self.resnet.fc.in_features
         self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])
 
-        self.style_classifier = nn.Linear(len_last, num_classes['style'])
-        self.genre_classifier = nn.Linear(len_last, num_classes['genre'])
+        self.style_classifier = nn.Sequential(nn.Dropout(dropout), nn.Linear(len_last, num_classes['style']))
+        self.genre_classifier = nn.Sequential(nn.Dropout(dropout), nn.Linear(len_last, num_classes['genre']))
 
     def forward(self, img: Tensor) -> List[Tensor]:
 
@@ -71,14 +71,14 @@ class ResnetSingleTask(nn.Module):
     (image) -> (resnet50) -> (linear)
     """
 
-    def __init__(self, num_class: int):
+    def __init__(self, num_class: int, dropout: float = 0):
         super(ResnetSingleTask, self).__init__()
 
         self.resnet = models.resnet50(pretrained = True)
         len_last = self.resnet.fc.in_features
         self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])
 
-        self.classifier = nn.Linear(len_last, num_class)
+        self.classifier = nn.Sequential(nn.Dropout(dropout), nn.Linear(len_last, num_class))
 
     def forward(self, img: Tensor) -> Tensor:
 
@@ -91,21 +91,34 @@ class ResnetSingleTask(nn.Module):
 
 class ViTSingleTask(nn.Module):
 
-    def __init__(self, num_class: int):
+    def __init__(self, num_class: int, dropout: float = 0):
         super(ViTSingleTask, self).__init__()
 
         self.vit = create_model("vit_base_patch16_224", pretrained=True)
         len_last = self.vit.head.in_features
-        self.vit = nn.Sequential(*list(self.vit.children())[:-1])
 
-        self.classifier = nn.Linear(len_last, num_class)
+        self.vit.head = nn.Sequential(nn.Dropout(dropout), nn.Linear(len_last, num_class))
 
     def forward(self, img: Tensor) -> Tensor:
 
-        #print(img.squeeze().shape)
-        visual_features = self.vit(img.squeeze())
-        #visual_features = visual_features.view(visual_features.size(0), -1)
-
-        out = self.classifier(visual_features)
-
+        out = self.vit(img.squeeze())
         return out
+
+class ViTMultiTask(nn.Module):
+
+    def __init__(self, num_classes: Dict[str, int], dropout: float = 0):
+        super(ViTMultiTask, self).__init__()
+
+        self.vit = create_model("vit_base_patch16_224", pretrained=True)
+
+        self.style_classifier = nn.Sequential(nn.Dropout(dropout), nn.Linear(768, num_classes['style']))
+        self.genre_classifier = nn.Sequential(nn.Dropout(dropout), nn.Linear(768, num_classes['genre']))
+
+    def forward(self, img: Tensor) -> Tensor:
+
+        visual_features = self.vit.forward_features(img.squeeze())
+
+        out_style = self.style_classifier(visual_features)
+        out_genre = self.genre_classifier(visual_features)
+
+        return [out_style, out_genre]

@@ -3,7 +3,7 @@ import os
 import torch
 import mlflow
 
-from models.models import ResnetSingleTask, EarlyStopping
+from models.models import ResnetSingleTask, EarlyStopping, ViTSingleTask
 from utils import load_dataset, prepare_dataloader, tracker, track_params, get_class_weights, get_base_arguments
 import config
 
@@ -11,12 +11,14 @@ torch.manual_seed(1)
 
 parser = get_base_arguments()
 parser.add_argument('--label', type=str, default='genre', help='Label to predict (style|genre).')
+parser.add_argument('--architecture', type=str, default='resnet', help='Architecture (vit|resnet).')
+parser.add_argument('--dropout', type=float, default=0.4, help='Dropout.')
 args = parser.parse_args()
 
 print(args)
 
 dataset_train, dataset_valid, dataset_test = load_dataset(
-    base_dir = args.dataset_path, image_dir = args.image_path, mode = 'single_task', label = args.label, transform_type = 'resnet')
+    base_dir = args.dataset_path, image_dir = args.image_path, mode = 'single_task', label = args.label, transform_type = args.architecture)
 
 data_loaders = prepare_dataloader({'train': dataset_train, 'valid': dataset_valid, 'test': dataset_test},
                                                   batch_size = args.batch, num_workers = 6, shuffle = True,
@@ -27,7 +29,10 @@ num_classes = {
     'style': 32
 }
 
-model = ResnetSingleTask(num_classes[args.label])
+if args.architecture == 'resnet':
+    model = ResnetSingleTask(num_classes[args.label], args.dropout)
+else:
+    model = ViTSingleTask(num_classes[args.label], args.dropout)
 model = model.to('cuda', non_blocking=True)
 
 if args.with_weights:
@@ -38,7 +43,7 @@ else:
 
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
 
-checkpoint_name = os.path.join(config.CHECKPOINTS_DIR, f'{args.label}_baseline_single-task_checkpoint.pt')
+checkpoint_name = os.path.join(config.CHECKPOINTS_DIR, f'{args.label}_{args.architecture}_baseline_single-task_checkpoint.pt')
 early_stop = EarlyStopping(patience = 10, min_delta = 0.001, checkpoint_path = checkpoint_name)
 
 @tracker(args.tracking, 'train')
@@ -96,7 +101,10 @@ def valid(epoch):
 
 def test():
 
-    model = ResnetSingleTask(num_classes[args.label])
+    if args.architecture == 'resnet':
+        model = ResnetSingleTask(num_classes[args.label])
+    else:
+        model = ViTSingleTask(num_classes[args.label])
     model.load_state_dict(torch.load(checkpoint_name))
     model = model.to('cuda', non_blocking=True)
 

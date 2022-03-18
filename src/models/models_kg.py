@@ -2,6 +2,7 @@ from typing import List, Dict
 from torch import Tensor, cat
 import torch.nn as nn
 from torchvision import models
+from timm import create_model
 
 class ContextNetSingleTask(nn.Module):
 
@@ -180,6 +181,56 @@ class NewMultiModalMultiTask(nn.Module):
 
         return [out_style, out_genre]
 
+class NewMultiModalSingleTaskVit(nn.Module):
+
+    def __init__(self, emb_size: int, num_class:int, dropout: float):
+        super().__init__()
+
+        self.vit = create_model("vit_base_patch16_224", pretrained=True)
+
+        self.classifier = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(768 + emb_size, num_class))
+
+
+    def forward(self, img: Tensor, embedding: Tensor) -> List[Tensor]:
+
+        visual_features = self.vit.forward_features(img.squeeze())
+
+        comb = cat((visual_features, embedding), dim = 1)
+
+        out = self.classifier(comb)
+
+        return out
+
+class NewMultiModalMultiTaskViT(nn.Module):
+
+    def __init__(self, emb_size: int, num_classes: Dict[str, int], dropout: float):
+        super().__init__()
+
+        self.vit = create_model("vit_base_patch16_224", pretrained=True)
+        len_last = self.vit.head.in_features
+
+        self.class_style = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(768 + emb_size, num_classes['style']))
+
+        self.class_genre = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(768 + emb_size, num_classes['genre']))
+
+    def forward(self, img: Tensor, embedding_style: Tensor, embedding_genre: Tensor) -> List[Tensor]:
+
+        visual_features = self.vit.forward_features(img.squeeze())
+
+        comb_style = cat((visual_features, embedding_style), dim = 1)
+        comb_genre = cat((visual_features, embedding_genre), dim = 1)
+
+        out_style = self.class_style(comb_style)
+        out_genre = self.class_genre(comb_genre)
+
+        return [out_style, out_genre]
+
 class LabelProjector(nn.Module):
 
     def __init__(self, emb_size: int):
@@ -195,6 +246,23 @@ class LabelProjector(nn.Module):
 
         visual_features = self.resnet(img)
         visual_features = visual_features.view(visual_features.size(0), -1)
+
+        out = self.encoder(visual_features)
+
+        return out
+
+class LabelProjectorVit(nn.Module):
+
+    def __init__(self, emb_size: int):
+        super().__init__()
+
+        self.vit = create_model("vit_base_patch16_224", pretrained=True)
+
+        self.encoder = nn.Linear(768, emb_size)
+
+    def forward(self, img: Tensor) -> List[Tensor]:
+
+        visual_features = self.vit.forward_features(img.squeeze())
 
         out = self.encoder(visual_features)
 

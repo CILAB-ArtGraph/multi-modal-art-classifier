@@ -5,7 +5,7 @@ import torch
 import os
 import config
 
-from models.models_kg import LabelProjector
+from models.models_kg import LabelProjector, LabelProjectorVit
 from models.models import EarlyStopping
 from utils import load_dataset_projection, prepare_dataloader, get_base_arguments
 
@@ -14,6 +14,7 @@ torch.manual_seed(1)
 parser = get_base_arguments()
 parser.add_argument('--node_embedding', type=str, default='gnn_artwork_genre_embs_graph.pt', help='Node embedding file name.')
 parser.add_argument('--emb_type', type=str, default='artwork', help='The embedding node type (artwork|style|genre).')
+parser.add_argument('--architecture', type=str, default='resnet', help='Architecture (vt|resnet).')
 args = parser.parse_args()
 
 dataset_train, dataset_valid, dataset_test = load_dataset_projection(
@@ -23,7 +24,10 @@ data_loaders = prepare_dataloader({'train': dataset_train, 'valid': dataset_vali
                                                   batch_size = args.batch, num_workers = 6, shuffle = True,
                                                   drop_last = False, pin_memory = True)
 
-model = LabelProjector(emb_size = 128)
+if args.architecture == 'resnet':
+    model = LabelProjector(emb_size = 128)
+else:
+    model = LabelProjectorVit(emb_size = 128)
 model = model.to('cuda', non_blocking=True)
 
 criterion = torch.nn.SmoothL1Loss()
@@ -82,7 +86,10 @@ def valid():
 
 @torch.no_grad()
 def test():
-    model = LabelProjector(emb_size = 128)
+    if args.architecture == 'resnet':
+        model = LabelProjector(emb_size = 128)
+    else:
+        model = LabelProjectorVit(emb_size = 128)
     model.load_state_dict(torch.load(os.path.join(config.PROJECTIONS_DIR, checkpoint_name)))
     model = model.to('cuda', non_blocking=True)
 
