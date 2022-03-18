@@ -21,7 +21,7 @@ parser.add_argument('--emb_train_style', type=str, default='gnn_style_embs_graph
 parser.add_argument('--emb_valid_style', type=str, default='gnn_style_valid_embs_graph.pt', help='Embedding style valid file name.')
 parser.add_argument('--emb_test_style', type=str, default='gnn_style_test_embs_graph.pt', help='Embedding style test file name.')
 parser.add_argument('--dropout', type=float, default=0.4, help='Dropout.')
-parser.add_argument('--architecture', type=str, default='resnet', help='Architecture (resnet|vit).')
+parser.add_argument('--architecture', type=str, default='vit', help='Architecture (resnet|vit).')
 args = parser.parse_args()
 
 dataset_train, dataset_valid, dataset_test = load_dataset_multitask_new_multimodal(

@@ -5,6 +5,9 @@ from torchvision import models
 from timm import create_model
 
 class ContextNetSingleTask(nn.Module):
+    """
+    The model propsed by Garcia et al (https://link.springer.com/article/10.1007/s13735-019-00189-4)
+    """
 
     def __init__(self, emb_size: int, num_class:int):
         super().__init__()
@@ -29,7 +32,9 @@ class ContextNetSingleTask(nn.Module):
         return out, graph_proj
 
 class ContextNetlMultiTask(nn.Module):
-
+    """
+    The model proposed by Garcia et al (https://link.springer.com/article/10.1007/s13735-019-00189-4)
+    """
     def __init__(self, emb_size: int, num_classes: Dict[str, int]):
         super().__init__()
 
@@ -56,6 +61,9 @@ class ContextNetlMultiTask(nn.Module):
         return outs, graph_proj
 
 class MultiModalSingleTask(nn.Module):
+    """
+    The model proposed by Castellano et al, https://arxiv.org/abs/2105.15028
+    """
 
     def __init__(self, emb_size: int, num_class:int):
         super().__init__()
@@ -88,6 +96,9 @@ class MultiModalSingleTask(nn.Module):
         return out, graph_proj
 
 class MultiModalMultiTask(nn.Module):
+    """
+    The model proposed by Castellano et al, https://arxiv.org/abs/2105.15028
+    """
 
     def __init__(self, emb_size: int, num_classes: Dict[str, int]):
         super().__init__()

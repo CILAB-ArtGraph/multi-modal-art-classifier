@@ -142,9 +142,9 @@ def load_dataset_new_multimodal(base_dir: str, image_dir: str, label: str, emb_t
     raw_valid = prepare_raw_dataset(base_dir, type = 'validation')
     raw_test = prepare_raw_dataset(base_dir, type = 'test')
 
-    embeddings_train = torch.load(os.path.join(base_dir, 'train', emb_train))
-    embeddings_validation = torch.load(os.path.join(base_dir, 'validation', emb_valid))
-    embeddings_test = torch.load(os.path.join(base_dir, 'test', emb_test))
+    embeddings_train = torch.load(os.path.join(base_dir, 'train', 'embeddings', emb_train))
+    embeddings_validation = torch.load(os.path.join(base_dir, 'validation', 'embeddings', emb_valid))
+    embeddings_test = torch.load(os.path.join(base_dir, 'test', 'embeddings', emb_test))
 
     dataset_train = MultiModalArtgraphSingleTask(image_dir, raw_train[['image', label]], embeddings_train, type = 'train', emb_type = emb_type)
     dataset_valid = MultiModalArtgraphSingleTask(image_dir, raw_valid[['image', label]], embeddings_validation, type = 'validation', emb_type = emb_type)
@@ -176,14 +176,14 @@ def load_dataset_multitask_new_multimodal(base_dir: str, image_dir: str, emb_typ
     raw_valid = prepare_raw_dataset(base_dir, type = 'validation')
     raw_test = prepare_raw_dataset(base_dir, type = 'test')
 
-    embeddings_train_genre = torch.load(os.path.join(base_dir, 'train', emb_train['genre']))
-    embeddings_train_style = torch.load(os.path.join(base_dir, 'train', emb_train['style']))
+    embeddings_train_genre = torch.load(os.path.join(base_dir, 'train', 'embeddings', emb_train['genre']))
+    embeddings_train_style = torch.load(os.path.join(base_dir, 'train', 'embeddings', emb_train['style']))
 
-    embeddings_validation_genre = torch.load(os.path.join(base_dir, 'validation', emb_valid['genre']))
-    embeddings_validation_style = torch.load(os.path.join(base_dir, 'validation', emb_valid['style']))
+    embeddings_validation_genre = torch.load(os.path.join(base_dir, 'validation', 'embeddings', emb_valid['genre']))
+    embeddings_validation_style = torch.load(os.path.join(base_dir, 'validation', 'embeddings', emb_valid['style']))
 
-    embeddings_test_genre = torch.load(os.path.join(base_dir, 'test', emb_test['genre']))
-    embeddings_test_style = torch.load(os.path.join(base_dir, 'test', emb_test['style']))
+    embeddings_test_genre = torch.load(os.path.join(base_dir, 'test', 'embeddings', emb_test['genre']))
+    embeddings_test_style = torch.load(os.path.join(base_dir, 'test', 'embeddings', emb_test['style']))
 
     dataset_train = NewMultiModalArtgraphMultiTask(image_dir, raw_train[['image', 'style', 'genre']], embeddings_train_style, embeddings_train_genre, 'train', emb_type)
     dataset_valid = NewMultiModalArtgraphMultiTask(image_dir, raw_valid[['image', 'style', 'genre']], embeddings_validation_style, embeddings_validation_genre, 'valid', emb_type)
