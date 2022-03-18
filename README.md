@@ -65,7 +65,8 @@ python train_new_multimodal.py
 ```
 
 ## Download the dataset and the embeddings
-You will need `dvc` for getting the dataset and the embeddings (download [here](https://drive.google.com/drive/folders/1omiDdfeC--Nb7X8Z0i2t8bfRpRInvBAe?usp=sharing) the artwork images). Anyway, in the folder `checkpoints` you can find all the generated models ready for testing.
+You will need `dvc` for getting the dataset and the embeddings (download [here](https://drive.google.com/drive/folders/1omiDdfeC--Nb7X8Z0i2t8bfRpRInvBAe?usp=sharing) the artwork images). Anyway, in the folder `checkpoints` you can find all the generated models ready for testing. If you do not want to use dvc, download the folders `dataset`,
+`projections` and `checkpoints` from [here](https://drive.google.com/drive/folders/1VD3E4h2hJMOUBloj9SyoZkheJohV60eB?usp=sharing)
 
 Run `dvc` pull. After that wait until the required folders and files are downloaded.
 
