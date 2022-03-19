@@ -44,7 +44,7 @@ else:
     criterion_style = torch.nn.CrossEntropyLoss()
     criterion_genre = torch.nn.CrossEntropyLoss()
 
-checkpoint_name = os.path.join(config.CHECKPOINTS_DIR, f'{args.label}_{args.architecture}_baseline_single-task_checkpoint.pt')
+checkpoint_name = os.path.join(config.CHECKPOINTS_DIR, f'{args.architecture}_baseline_single-task_checkpoint.pt')
 early_stop = EarlyStopping(patience = 3, min_delta = 0.001, checkpoint_path = checkpoint_name)
 
 w_style = 0.6

@@ -55,7 +55,7 @@ else:
     criterion_genre = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
 
-checkpoint_name = os.path.join(config.CHECKPOINTS_DIR, f'{args.label}_{args.net}_new-multimodal_multi-task_checkpoint.pt')
+checkpoint_name = os.path.join(config.CHECKPOINTS_DIR, f'new-multimodal_multi-task_checkpoint.pt')
 early_stop = EarlyStopping(patience = 3, min_delta = 0.001, checkpoint_path = checkpoint_name)
 
 @tracker_multitask(args.tracking, 'train')

@@ -102,7 +102,7 @@ def load_dataset_multimodal(base_dir: str, image_dir: str, mode : str, label: st
     raw_valid = prepare_raw_dataset(base_dir, type = 'validation')
     raw_test = prepare_raw_dataset(base_dir, type = 'test')
 
-    embeddings = torch.load(os.path.join(base_dir, 'train', emb_train))
+    embeddings = torch.load(os.path.join(base_dir, 'train', 'embeddings', emb_train))
 
     if mode == 'single_task':
         assert label in ['genre', 'style']

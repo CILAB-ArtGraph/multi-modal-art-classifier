@@ -27,9 +27,10 @@ dependencies:
   - brotlipy=0.7.0=py39h3811e60_1003
   - bzip2=1.0.8=h7f98852_4
   - c-ares=1.18.1=h7f98852_0
-  - ca-certificates=2021.10.26=h06a4308_2
+  - ca-certificates=2022.2.1=h06a4308_0
   - cached-property=1.5.2=hd8ed1ab_1
   - cached_property=1.5.2=pyha770c72_1
+  - cachetools=5.0.0=pyhd8ed1ab_0
   - cairo=1.16.0=ha00ac49_1009
   - certifi=2021.10.8=py39hf3d152e_1
   - cffi=1.15.0=py39h4bc2ebd_0
@@ -56,8 +57,10 @@ dependencies:
   - docker-pycreds=0.4.0=py_0
   - dpath=2.0.6=py39hf3d152e_0
   - dulwich=0.20.32=py39h3811e60_0
-  - dvc=2.9.3=py39hf3d152e_0
+  - dvc=2.9.5=py39hf3d152e_0
+  - dvc-gdrive=2.9.5=py39hf3d152e_0
   - entrypoints=0.3=pyhd8ed1ab_1003
+  - et_xmlfile=1.1.0=py39h06a4308_0
   - expat=2.4.4=h9c3ff4c_0
   - ffmpeg=4.3.2=hca11adc_1
   - flask=2.0.2=pyhd8ed1ab_0
@@ -85,6 +88,11 @@ dependencies:
   - gitpython=3.1.24=pyhd8ed1ab_0
   - gmp=6.2.1=h58526e2_0
   - gnutls=3.6.15=he1e5248_0
+  - google-api-core=2.5.0=pyhd8ed1ab_0
+  - google-api-python-client=2.39.0=pyhd8ed1ab_0
+  - google-auth=2.6.0=pyh6c4a22f_1
+  - google-auth-httplib2=0.1.0=pyhd8ed1ab_0
+  - googleapis-common-protos=1.54.0=py39hf3d152e_0
   - googledrivedownloader=0.4=pyhd3deb0d_1
   - gorilla=0.4.0=pyhd8ed1ab_0
   - grandalf=0.6=py_0
@@ -96,6 +104,7 @@ dependencies:
   - gunicorn=20.1.0=py39hf3d152e_1
   - harfbuzz=3.3.1=hb4a5f5f_0
   - html5lib=1.1=pyh9f0ad1d_0
+  - httplib2=0.20.4=pyhd8ed1ab_0
   - icu=69.1=h9c3ff4c_0
   - idna=3.3=pyhd3eb1b0_0
   - importlib-metadata=4.10.0=py39hf3d152e_0
@@ -180,9 +189,11 @@ dependencies:
   - networkx=2.6.3=pyhd8ed1ab_1
   - numpy=1.21.2=py39h20f2e39_0
   - numpy-base=1.21.2=py39h79a1101_0
+  - oauth2client=4.1.3=py_0
   - olefile=0.46=pyh9f0ad1d_1
   - openh264=2.1.1=h780b84a_0
   - openjpeg=2.4.0=hb52868f_1
+  - openpyxl=3.0.9=pyhd8ed1ab_0
   - openssl=1.1.1m=h7f8727e_0
   - packaging=21.3=pyhd8ed1ab_0
   - pandas=1.3.4=py39hde0f152_1
@@ -205,10 +216,12 @@ dependencies:
   - psutil=5.9.0=py39h3811e60_0
   - ptyprocess=0.7.0=pyhd3deb0d_0
   - pyasn1=0.4.8=py_0
+  - pyasn1-modules=0.2.8=py_0
   - pybind11-abi=4=hd8ed1ab_3
   - pycosat=0.6.3=py39h3811e60_1009
   - pycparser=2.21=pyhd8ed1ab_0
   - pydot=1.4.2=py39hf3d152e_1
+  - pydrive2=1.10.0=pyhd8ed1ab_1
   - pyg=2.0.2=py39_torch_1.10.0_cu102
   - pygit2=1.7.2=py39h3811e60_0
   - pygments=2.10.0=pyhd8ed1ab_0
@@ -232,6 +245,7 @@ dependencies:
   - pytorch-sparse=0.6.12=py39_torch_1.10.0_cu102
   - pytorch-spline-conv=1.2.1=py39_torch_1.10.0_cu102
   - pytz=2021.3=pyhd8ed1ab_0
+  - pyu2f=0.1.5=pyhd8ed1ab_0
   - pyyaml=6.0=py39h3811e60_3
   - pyzmq=22.3.0=py39h37b5a0c_1
   - querystring_parser=1.2.4=py_0
@@ -241,6 +255,7 @@ dependencies:
   - reproc-cpp=14.2.3=h9c3ff4c_0
   - requests=2.26.0=pyhd8ed1ab_1
   - rich=11.1.0=pyhd8ed1ab_0
+  - rsa=4.8=pyhd8ed1ab_0
   - ruamel.yaml=0.17.19=py39h3811e60_0
   - ruamel.yaml.clib=0.2.6=py39h3811e60_0
   - ruamel_yaml=0.15.100=py39h27cfd23_0
@@ -277,6 +292,7 @@ dependencies:
   - typing_extensions=4.0.1=pyha770c72_0
   - tzdata=2021e=he74cb21_0
   - unidecode=1.3.2=pyhd8ed1ab_0
+  - uritemplate=4.1.1=pyhd8ed1ab_0
   - urllib3=1.26.7=pyhd8ed1ab_0
   - voluptuous=0.12.2=pyhd8ed1ab_1
   - wcwidth=0.2.5=pyh9f0ad1d_2

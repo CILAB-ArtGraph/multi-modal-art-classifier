@@ -40,9 +40,9 @@ model = model.to('cuda', non_blocking=True)
 
 if args.with_weights:
     class_weights = get_class_weights(dataset_train, num_classes[args.label],  args.label)
-    criterion = torch.nn.CrossEntropyLoss(class_weights.to('cuda'))
+    class_criterion = torch.nn.CrossEntropyLoss(class_weights.to('cuda'))
 else:
-    criterion = torch.nn.CrossEntropyLoss()
+    class_criterion = torch.nn.CrossEntropyLoss()
 
 if args.net == 'context-net':
     encoder_criterion = torch.nn.SmoothL1Loss()
